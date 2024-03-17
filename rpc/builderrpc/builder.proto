@@ -1,0 +1,46 @@
+syntax = "proto3";
+
+import "google/protobuf/empty.proto";
+
+option go_package = "github.com/ayush18023/Load_balancer_Fyp/rpc/builderrpc";
+
+message BWhoAmIResponse{
+    string State = 1;
+}
+
+message BuildRawRequest{
+    string Name = 1;
+    string Gitlink = 2;
+    string Branch = 3;
+    string BuildCmd = 4;
+    string StartCmd = 5;
+    string RuntimeEnv = 6;
+    map<string, string> EnvVars= 7;
+}
+
+message BuildRawResponse{
+    bool Success = 1;
+    string Name = 2;
+    string ImageName = 3;
+    string RunningPort = 4;
+}
+
+message BuildSpecRequest{
+    string Name = 1;
+    string Gitlink = 2;
+    string Branch = 3;
+    map<string, string> EnvVars= 4;
+}
+
+message BuildSpecResponse{
+    bool Success = 1;
+    string Name = 2;
+    string ImageName = 3;
+    string RunningPort = 4;
+}
+
+service BuilderService {
+    rpc WhoAmI(google.protobuf.Empty) returns (BWhoAmIResponse) {}
+    rpc BuildRaw(BuildRawRequest) returns (BuildRawResponse) {}
+    rpc BuildSpec(BuildSpecRequest) returns (BuildSpecResponse) {}
+}

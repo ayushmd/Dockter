@@ -1,0 +1,50 @@
+syntax = "proto3";
+
+import "google/protobuf/empty.proto";
+
+option go_package = "github.com/ayush18023/Load_balancer_Fyp/rpc/workerrpc";
+
+message WWhoAmIResponse{
+    string state = 1;
+}
+
+message HealthScoreResponse{
+    float score     = 1;
+}
+
+message HealthMetricResponse{
+    float CpuUsage  = 1;
+    float MemUsage  = 2;
+    float DiskUsage = 3;
+}
+
+message Task {
+    string Name        = 1;
+    string ImageName   = 2;
+    string RunningPort = 3;
+}
+
+message AddTaskResponse {
+    string hostPort = 2;
+}
+
+message TerminateTaskRequest{
+    string Name = 1;
+}
+
+message TerminateTaskResponse{
+    string success = 1;
+}
+
+message Tasks {
+    repeated Task tasks = 1;
+}
+
+service WorkerService {
+    rpc WhoAmI(google.protobuf.Empty) returns (WWhoAmIResponse) {}
+    rpc HealthScore(google.protobuf.Empty) returns (HealthScoreResponse) {}
+    rpc HealthMetrics(google.protobuf.Empty) returns (HealthMetricResponse) {}
+    rpc AddTask(Task) returns (AddTaskResponse) {}
+    rpc TerminateTask(TerminateTaskRequest) returns (TerminateTaskResponse) {}
+    rpc GetTasks(google.protobuf.Empty) returns (Tasks) {}
+}

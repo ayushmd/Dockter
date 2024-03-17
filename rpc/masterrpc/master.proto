@@ -1,0 +1,26 @@
+syntax = "proto3";
+
+import "google/protobuf/empty.proto";
+
+option go_package = "github.com/ayush18023/Load_balancer_Fyp/rpc/masterrpc";
+
+message MWhoAmIResponse{
+    string State = 1;
+}
+
+message JoinRequest{
+    string url = 1; // ip:port
+    string State = 2;
+    float CpuUsage = 3;
+    float MemUsage = 4;
+    float DiskUsage = 5;
+}
+
+message JoinResponse{
+    string Success =1;
+}
+
+service MasterService {
+    rpc WhoAmI(google.protobuf.Empty) returns (MWhoAmIResponse) {}
+    rpc Join(JoinRequest) returns (JoinResponse) {}
+}

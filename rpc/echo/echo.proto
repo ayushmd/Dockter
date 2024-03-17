@@ -1,0 +1,13 @@
+syntax = "proto3";
+
+import "google/protobuf/empty.proto";
+
+option go_package = "github.com/ayush18023/Load_balancer_Fyp/rpc/echo";
+
+message EchoResponse {
+  string state = 1;
+}
+
+service Echo {
+  rpc UnaryEcho(google.protobuf.Empty) returns (EchoResponse) {}
+}
