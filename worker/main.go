@@ -89,10 +89,12 @@ func (w *Worker) JoinMaster(masterurl string) {
 	w.Master = url.URL{
 		Host: masterurl,
 	}
+	fmt.Println("here is ")
 	conn, err := grpc.Dial(
 		masterurl,
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 	)
+	fmt.Println("here is executed")
 	if err != nil {
 		panic("Connection failed")
 	}
@@ -102,6 +104,7 @@ func (w *Worker) JoinMaster(masterurl string) {
 		panic("Error ip")
 	}
 	myurl := ip + fmt.Sprintf("%d", w.Port)
+	fmt.Println("Till here ", myurl)
 	CpuUsage, MemUsage, DiskUsage, err := internal.HealthMetrics()
 	if err != nil {
 		panic("Health")

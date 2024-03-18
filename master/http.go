@@ -86,7 +86,7 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 	fmt.Println("Has ", r.Host)
 	hasSubdomain := strings.Contains(r.Host, ".")
 	fmt.Println("Has ", hasSubdomain)
-	if hasSubdomain {
+	if false {
 		DynamicRouter(w, r)
 	} else {
 		fmt.Println(router.GetMapper)

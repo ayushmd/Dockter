@@ -3,9 +3,11 @@ package main
 import (
 	"flag"
 	"fmt"
+	"sync"
 
 	// "os"
 	"github.com/ayush18023/Load_balancer_Fyp/master"
+	"github.com/ayush18023/Load_balancer_Fyp/worker"
 )
 
 var Port int
@@ -21,7 +23,14 @@ func main() {
 	fmt.Println("The state is: ", State)
 	if join != "" {
 		// spin up worker or builder
-
+		var waitgrp sync.WaitGroup
+		waitgrp.Add(1)
+		go func() {
+			defer waitgrp.Done()
+			worker.NewWorkerServer(Port)
+		}()
+		worker.Worker_.JoinMaster(join)
+		waitgrp.Wait()
 	} else {
 		// spin up master
 		master.NewMasterServer(Port)

@@ -17,7 +17,7 @@ message JoinRequest{
 }
 
 message JoinResponse{
-    string Success =1;
+    bool Success =1;
 }
 
 service MasterService {

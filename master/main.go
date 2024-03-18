@@ -3,6 +3,7 @@ package master
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"net/url"
 
 	"github.com/ayush18023/Load_balancer_Fyp/internal"
@@ -88,6 +89,7 @@ var Master_ *Master = &Master{
 }
 
 func (m *Master) Join(peerurl, peerState string, CpuUsage, MemUsage, DiskUsage float64) {
+	fmt.Println("This is called by ", peerurl)
 	urlparsed := url.URL{
 		Host: peerurl,
 	}

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"net"
+	"sync"
 
 	"github.com/ayush18023/Load_balancer_Fyp/internal"
 	"github.com/ayush18023/Load_balancer_Fyp/rpc/workerrpc"
@@ -55,6 +56,8 @@ func (w *WorkerServer) AddTask(ctx context.Context, in *workerrpc.Task) (*worker
 }
 
 func NewWorkerServer(port int) {
+	var waitgrp sync.WaitGroup
+	waitgrp.Add(1)
 	Worker_.Port = port
 	lis, err := net.Listen("tcp", fmt.Sprintf(":%d", port))
 	if err != nil {
@@ -63,8 +66,13 @@ func NewWorkerServer(port int) {
 	serverRegistrar := grpc.NewServer()
 	service := &WorkerServer{}
 	workerrpc.RegisterWorkerServiceServer(serverRegistrar, service)
-	err = serverRegistrar.Serve(lis)
-	if err != nil {
-		log.Fatalf("impossible to serve: %s", err)
-	}
+	go func() {
+		defer waitgrp.Done()
+		err = serverRegistrar.Serve(lis)
+		if err != nil {
+			log.Fatalf("impossible to serve: %s", err)
+		}
+	}()
+	fmt.Println("Worker server started on port ", port)
+	waitgrp.Wait()
 }
