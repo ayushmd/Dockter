@@ -26,7 +26,7 @@ func (b *Builder) GetBaseEnvironment(RuntimeEnv string) string {
 	case "python":
 		return "FROM python:3.9"
 	case "node":
-		return "FROM node:latest"
+		return "FROM node:10-alpine"
 	case "go":
 		return "FROM golang:1.16"
 	}
@@ -38,7 +38,7 @@ func (b *Builder) GetWorkdir() string {
 }
 
 func (b *Builder) Copyfiles(Name string) string {
-	return fmt.Sprintf("COPY /%s /app", Name)
+	return "COPY . ."
 }
 
 func (b *Builder) GetRunCommand(BuildCmd string) string {
