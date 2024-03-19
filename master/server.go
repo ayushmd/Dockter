@@ -6,6 +6,7 @@ import (
 	"net"
 	"net/http"
 	"sync"
+	"time"
 
 	"github.com/ayush18023/Load_balancer_Fyp/internal"
 	lru "github.com/hashicorp/golang-lru/v2"
@@ -26,13 +27,18 @@ func NewMasterServer(port int) {
 	if err != nil {
 		log.Fatal("Master server not started")
 	}
-	Master_.cacheDns = cache
+	Master_ = &Master{
+		kwriter: &internal.KafkaWriter{
+			Writer: internal.KafkaUPAuthWriter("build"),
+		},
+		cacheDns: cache,
+	}
 	var waitgrp sync.WaitGroup
 	lis, err := net.Listen("tcp", fmt.Sprintf(":%d", port))
 	if err != nil {
 		log.Fatal("Master server not started")
 	}
-	waitgrp.Add(3)
+	waitgrp.Add(4)
 	master = &MasterServer{
 		grpcServer: NewMasterGrpcInstance(),
 		httpServer: NewMasterHttpInstance(port + 1),
@@ -68,5 +74,15 @@ func NewMasterServer(port int) {
 		)
 	}()
 	fmt.Println("Kafka Listner started")
+
+	workers := &internal.Background{
+		Callback: Master_.Pool,
+		Timer:    10 * time.Second,
+	}
+	go func() {
+		defer waitgrp.Done()
+		workers.Run()
+	}()
+	fmt.Println("Background workers started")
 	waitgrp.Wait()
 }

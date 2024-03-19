@@ -1,14 +1,17 @@
 package internal
 
-import "time"
+import (
+	"time"
+)
 
 type Background struct {
+	Timer    time.Duration
 	Callback func()
-	timer    time.Duration
 }
 
 func (b *Background) Run() {
-	t := time.NewTicker(b.timer)
+
+	t := time.NewTicker(b.Timer)
 	for {
 		select {
 		case <-t.C:

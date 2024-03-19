@@ -4,7 +4,10 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/url"
+	"sync"
+	"time"
 
 	"github.com/ayush18023/Load_balancer_Fyp/internal"
 	"github.com/ayush18023/Load_balancer_Fyp/rpc/builderrpc"
@@ -13,6 +16,8 @@ import (
 	"github.com/segmentio/kafka-go"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
+	"google.golang.org/grpc/keepalive"
+	"google.golang.org/protobuf/types/known/emptypb"
 )
 
 type Backend struct {
@@ -82,10 +87,51 @@ type Master struct {
 	cacheDns   *lru.Cache[string, Task]
 }
 
-var Master_ *Master = &Master{
-	kwriter: &internal.KafkaWriter{
-		Writer: internal.KafkaUPAuthWriter("build"),
-	},
+var Master_ *Master
+
+var kacp = keepalive.ClientParameters{
+	Time:                10 * time.Second, // send pings every 10 seconds if there is no activity
+	Timeout:             time.Second,      // wait 1 second for ping ack before considering the connection dead
+	PermitWithoutStream: true,             // send pings even without active streams
+}
+
+func (m *Master) PoolServ(waitgrp *sync.WaitGroup, serv *Backend) {
+	fmt.Println("Pooling server ", serv.URL.Host)
+	defer waitgrp.Done()
+	conn, err := grpc.Dial(
+		serv.URL.Host,
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
+		grpc.WithKeepaliveParams(kacp),
+	)
+	if err != nil {
+		log.Fatalf("did not connect: %v", err)
+	}
+	defer conn.Close()
+
+	w := workerrpc.NewWorkerServiceClient(conn)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Minute)
+	defer cancel()
+	fmt.Println("Performing unary request")
+	res, err := w.HealthMetrics(ctx, &emptypb.Empty{})
+	if err != nil {
+		serv.IsAlive = false
+		return
+	}
+	serv.CpuUsage = float64(res.CpuUsage)
+	serv.MemUsage = float64(res.MemUsage)
+	serv.DiskUsage = float64(res.DiskUsage)
+	serv.IsAlive = true
+}
+
+func (m *Master) Pool() {
+	fmt.Println("Pooling started")
+	var waitgrp *sync.WaitGroup = &sync.WaitGroup{}
+	for _, serv := range m.ServerPool {
+		waitgrp.Add(1)
+		go m.PoolServ(waitgrp, serv)
+	}
+	waitgrp.Wait()
 }
 
 func (m *Master) HasJoined(peerurl string) int {

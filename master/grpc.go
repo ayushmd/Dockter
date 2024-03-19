@@ -5,6 +5,7 @@ import (
 
 	"github.com/ayush18023/Load_balancer_Fyp/rpc/masterrpc"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/peer"
 )
 
 type MasterGrpc struct {
@@ -22,8 +23,9 @@ func (m *MasterGrpc) Join(ctx context.Context, in *masterrpc.JoinServer) (*maste
 			DiskUsage: float32(server.DiskUsage),
 		})
 	}
+	p, _ := peer.FromContext(ctx)
 	Master_.Join(
-		in.GetUrl(),
+		p.Addr.String(),
 		in.GetState(),
 		float64(in.GetCpuUsage()),
 		float64(in.GetMemUsage()),

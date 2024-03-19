@@ -112,7 +112,7 @@
                             {{ end }}
                         </div>
                         <div style="margin-left: 15px;">
-                            {{ .CpuUsage }}
+                            {{ printf "%.2f" .CpuUsage }}
                         </div>
                     </div>
                     <div style="display: flex; align-items: center;">
@@ -129,7 +129,7 @@
                             {{ end }}
                         </div>
                         <div style="margin-left: 15px;">
-                            {{ .MemUsage }}
+                            {{ printf "%.2f" .MemUsage }}
                         </div>
                     </div>
                     <div style="display: flex; align-items: center;">
@@ -146,7 +146,7 @@
                             {{ end }}
                         </div>
                         <div style="margin-left: 15px;">
-                            {{.DiskUsage}}
+                            {{ printf "%.2f" .DiskUsage}}
                         </div>
                     </div>
                 </div>
