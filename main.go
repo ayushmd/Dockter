@@ -22,24 +22,31 @@ func main() {
 	flag.Parse()
 	fmt.Println("The port is: ", Port)
 	fmt.Println("The state is: ", State)
-	if join != "" {
-		// spin up worker or builder
-		var waitgrp sync.WaitGroup
-		waitgrp.Add(1)
+	var waitgrp sync.WaitGroup
+	waitgrp.Add(1)
+	if State == "WORKER" {
 		go func() {
 			defer waitgrp.Done()
-			if State == "WORKER" {
-				worker.NewWorkerServer(Port)
-			} else {
-				builder.NewBuilderServer(Port)
-			}
+			worker.NewWorkerServer(Port)
 		}()
-		worker.Worker_.JoinMaster(join)
-		waitgrp.Wait()
+		if join != "" {
+			worker.Worker_.JoinMaster(join)
+		}
+	} else if State == "MASTER" {
+		go func() {
+			defer waitgrp.Done()
+			master.NewMasterServer(Port)
+		}()
 	} else {
-		// spin up master
-		master.NewMasterServer(Port)
+		go func() {
+			defer waitgrp.Done()
+			builder.NewBuilderServer(Port)
+		}()
+		if join != "" {
+			builder.Builder_.JoinMaster(join)
+		}
 	}
+	waitgrp.Wait()
 	// if len(serverList) == 0 {
 	// 	log.Fatal("Please provide one or more backends to load balance")
 	// }
