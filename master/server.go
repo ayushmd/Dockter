@@ -8,6 +8,7 @@ import (
 	"sync"
 
 	"github.com/ayush18023/Load_balancer_Fyp/internal"
+	lru "github.com/hashicorp/golang-lru/v2"
 	"google.golang.org/grpc"
 )
 
@@ -21,6 +22,11 @@ type MasterServer struct {
 var master *MasterServer
 
 func NewMasterServer(port int) {
+	cache, err := lru.New[string, Task](128)
+	if err != nil {
+		log.Fatal("Master server not started")
+	}
+	Master_.cacheDns = cache
 	var waitgrp sync.WaitGroup
 	lis, err := net.Listen("tcp", fmt.Sprintf(":%d", port))
 	if err != nil {
