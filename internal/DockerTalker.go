@@ -35,13 +35,14 @@ func (d *Dockter) Close() {
 
 func (d *Dockter) CreateImage(imageName string, reader io.Reader) {
 	buildOptions := types.ImageBuildOptions{
-		Tags:    []string{imageName + ":latest"},
-		Context: reader,
+		Dockerfile: "Dockerfile",
+		Tags:       []string{imageName + ":latest"},
+		Context:    reader,
 	}
 
 	buildResponse, err := d.cli.ImageBuild(
 		context.Background(),
-		reader,
+		nil,
 		buildOptions,
 	)
 
