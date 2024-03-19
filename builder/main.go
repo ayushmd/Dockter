@@ -90,16 +90,17 @@ func (b *Builder) BuildRaw(
 		return "", "", err
 	}
 
-	buildContext, err := os.Open(Name)
-	if err != nil {
-		fmt.Printf("Failed to open build context: %v\n", err)
-		return "", "", err
-	}
-	defer buildContext.Close()
+	// buildContext, err := os.Open(fmt.Sprintf("%s/Dockerfile", Name))
+	// if err != nil {
+	// 	fmt.Printf("Failed to open build context: %v\n", err)
+	// 	return "", "", err
+	// }
+	// defer buildContext.Close()
 	doc := internal.Dockter{}
 	doc.Init()
 	defer doc.Close()
-	doc.CreateImage(Name, buildContext)
+	// doc.CreateImage(Name, buildContext)
+	CreateImage(Name)
 	containerID, err := doc.RunContainer(Name, nil)
 	if err != nil {
 		return "", "", err
