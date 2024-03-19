@@ -25,7 +25,7 @@ func (m *MasterGrpc) Join(ctx context.Context, in *masterrpc.JoinServer) (*maste
 	}
 	p, _ := peer.FromContext(ctx)
 	Master_.Join(
-		p.Addr.String(),
+		p.Addr.String()+in.GetUrl(),
 		in.GetState(),
 		float64(in.GetCpuUsage()),
 		float64(in.GetMemUsage()),

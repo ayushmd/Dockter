@@ -94,11 +94,11 @@ func (w *Worker) JoinMaster(masterurl string) {
 		panic("Connection failed")
 	}
 	master := masterrpc.NewMasterServiceClient(conn)
-	ip, err := internal.GetIP()
-	if err != nil {
-		panic("Error ip")
-	}
-	myurl := ip + fmt.Sprintf("%d", w.Port)
+	// ip, err := internal.GetIP()
+	// if err != nil {
+	// 	panic("Error ip")
+	// }
+	myurl := fmt.Sprintf("%d", w.Port)
 	fmt.Println("Till here ", myurl)
 	CpuUsage, MemUsage, DiskUsage, err := internal.HealthMetrics()
 	if err != nil {
