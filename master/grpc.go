@@ -2,6 +2,7 @@ package master
 
 import (
 	"context"
+	"strings"
 
 	"github.com/ayush18023/Load_balancer_Fyp/rpc/masterrpc"
 	"google.golang.org/grpc"
@@ -25,7 +26,7 @@ func (m *MasterGrpc) Join(ctx context.Context, in *masterrpc.JoinServer) (*maste
 	}
 	p, _ := peer.FromContext(ctx)
 	Master_.Join(
-		p.Addr.String()+in.GetUrl(),
+		strings.Split(p.Addr.String(), ":")[0]+in.GetUrl(),
 		in.GetState(),
 		float64(in.GetCpuUsage()),
 		float64(in.GetMemUsage()),

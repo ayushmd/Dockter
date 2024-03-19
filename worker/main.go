@@ -98,7 +98,7 @@ func (w *Worker) JoinMaster(masterurl string) {
 	// if err != nil {
 	// 	panic("Error ip")
 	// }
-	myurl := fmt.Sprintf("%d", w.Port)
+	myurl := fmt.Sprintf(":%d", w.Port)
 	fmt.Println("Till here ", myurl)
 	CpuUsage, MemUsage, DiskUsage, err := internal.HealthMetrics()
 	if err != nil {
