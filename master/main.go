@@ -90,9 +90,8 @@ type Master struct {
 var Master_ *Master
 
 var kacp = keepalive.ClientParameters{
-	Time:                10 * time.Second, // send pings every 10 seconds if there is no activity
-	Timeout:             time.Second,      // wait 1 second for ping ack before considering the connection dead
-	PermitWithoutStream: true,             // send pings even without active streams
+	Timeout:             2 * time.Second, // wait 1 second for ping ack before considering the connection dead
+	PermitWithoutStream: true,            // send pings even without active streams
 }
 
 func (m *Master) PoolServ(waitgrp *sync.WaitGroup, serv *Backend) {
@@ -112,10 +111,11 @@ func (m *Master) PoolServ(waitgrp *sync.WaitGroup, serv *Backend) {
 
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Minute)
 	defer cancel()
-	fmt.Println("Performing unary request")
 	res, err := w.HealthMetrics(ctx, &emptypb.Empty{})
 	if err != nil {
+		fmt.Printf("Server %s didnt respond", serv.URL.Host)
 		serv.IsAlive = false
+		fmt.Println(err)
 		return
 	}
 	serv.CpuUsage = float64(res.CpuUsage)
