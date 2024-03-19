@@ -21,5 +21,5 @@ func HealthMetrics() (float64, float64, float64, error) {
 	if err != nil {
 		return 0.0, 0.0, 0.0, err
 	}
-	return cpuUsage[0], memInfo.UsedPercent, diskUsage.UsedPercent, nil
+	return cpuUsage[0] * 100, memInfo.UsedPercent, diskUsage.UsedPercent, nil
 }
