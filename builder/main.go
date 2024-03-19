@@ -38,7 +38,7 @@ func (b *Builder) GetWorkdir() string {
 }
 
 func (b *Builder) Copyfiles(Name string) string {
-	return fmt.Sprintf("COPY /%s .", Name)
+	return fmt.Sprintf("COPY /%s /app", Name)
 }
 
 func (b *Builder) GetRunCommand(BuildCmd string) string {
