@@ -2,6 +2,7 @@ package internal
 
 import (
 	"bufio"
+	"bytes"
 	"context"
 	"encoding/base64"
 	"encoding/json"
@@ -42,7 +43,7 @@ func (d *Dockter) CreateImage(imageName string, reader io.Reader) {
 
 	buildResponse, err := d.cli.ImageBuild(
 		context.Background(),
-		nil,
+		bytes.NewReader([]byte("")),
 		buildOptions,
 	)
 

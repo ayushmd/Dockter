@@ -90,7 +90,7 @@ func (b *Builder) BuildRaw(
 		return "", "", err
 	}
 
-	dockerfile, err := os.Open(fmt.Sprintf("%s/Dockerfile", Name))
+	dockerfile, err := os.Open(Name)
 	if err != nil {
 		fmt.Printf("Failed to open build context: %v\n", err)
 		return "", "", err
