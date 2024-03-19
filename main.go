@@ -6,6 +6,7 @@ import (
 	"sync"
 
 	// "os"
+	"github.com/ayush18023/Load_balancer_Fyp/builder"
 	"github.com/ayush18023/Load_balancer_Fyp/master"
 	"github.com/ayush18023/Load_balancer_Fyp/worker"
 )
@@ -27,7 +28,11 @@ func main() {
 		waitgrp.Add(1)
 		go func() {
 			defer waitgrp.Done()
-			worker.NewWorkerServer(Port)
+			if State == "WORKER" {
+				worker.NewWorkerServer(Port)
+			} else {
+				builder.NewBuilderServer(Port)
+			}
 		}()
 		worker.Worker_.JoinMaster(join)
 		waitgrp.Wait()

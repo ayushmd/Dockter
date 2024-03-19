@@ -107,21 +107,39 @@ func (m *Master) PoolServ(waitgrp *sync.WaitGroup, serv *Backend) {
 	}
 	defer conn.Close()
 
-	w := workerrpc.NewWorkerServiceClient(conn)
+	if serv.State == "WORKER" {
+		w := workerrpc.NewWorkerServiceClient(conn)
 
-	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Minute)
-	defer cancel()
-	res, err := w.HealthMetrics(ctx, &emptypb.Empty{})
-	if err != nil {
-		fmt.Printf("Server %s didnt respond", serv.URL.Host)
-		serv.IsAlive = false
-		fmt.Println(err)
-		return
+		ctx, cancel := context.WithTimeout(context.Background(), 3*time.Minute)
+		defer cancel()
+		res, err := w.HealthMetrics(ctx, &emptypb.Empty{})
+		if err != nil {
+			fmt.Printf("Server %s didnt respond", serv.URL.Host)
+			serv.IsAlive = false
+			fmt.Println(err)
+			return
+		}
+		serv.CpuUsage = float64(res.CpuUsage)
+		serv.MemUsage = float64(res.MemUsage)
+		serv.DiskUsage = float64(res.DiskUsage)
+		serv.IsAlive = true
+	} else {
+		b := builderrpc.NewBuilderServiceClient(conn)
+
+		ctx, cancel := context.WithTimeout(context.Background(), 3*time.Minute)
+		defer cancel()
+		res, err := b.BuildHealthMetrics(ctx, &emptypb.Empty{})
+		if err != nil {
+			fmt.Printf("Server %s didnt respond", serv.URL.Host)
+			serv.IsAlive = false
+			fmt.Println(err)
+			return
+		}
+		serv.CpuUsage = float64(res.CpuUsage)
+		serv.MemUsage = float64(res.MemUsage)
+		serv.DiskUsage = float64(res.DiskUsage)
+		serv.IsAlive = true
 	}
-	serv.CpuUsage = float64(res.CpuUsage)
-	serv.MemUsage = float64(res.MemUsage)
-	serv.DiskUsage = float64(res.DiskUsage)
-	serv.IsAlive = true
 }
 
 func (m *Master) Pool() {

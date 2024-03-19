@@ -39,8 +39,15 @@ message BuildSpecResponse{
     string RunningPort = 4;
 }
 
+message BuildHealthResponse{
+    float CpuUsage  = 1;
+    float MemUsage  = 2;
+    float DiskUsage = 3;
+}
+
 service BuilderService {
     rpc WhoAmI(google.protobuf.Empty) returns (BWhoAmIResponse) {}
     rpc BuildRaw(BuildRawRequest) returns (BuildRawResponse) {}
     rpc BuildSpec(BuildSpecRequest) returns (BuildSpecResponse) {}
+    rpc BuildHealthMetrics(google.protobuf.Empty) returns (BuildHealthResponse) {}
 }

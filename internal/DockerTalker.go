@@ -151,7 +151,7 @@ func GetKey(key string) string {
 	return os.Getenv(key)
 }
 
-func (d *Dockter) PushToRegistry(imageName, reponame string) {
+func (d *Dockter) PushToRegistry(imageName, reponame string) string {
 	authConfig := registery.AuthConfig{
 		Username:      GetKey("DOCKER_USER"),
 		Password:      GetKey("DOCKER_PAT"),
@@ -185,6 +185,7 @@ func (d *Dockter) PushToRegistry(imageName, reponame string) {
 	if err != nil {
 		log.Fatal(err)
 	}
+	return tag
 }
 
 func (d *Dockter) PullFromRegistery(repoimageName string) error {

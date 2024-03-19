@@ -20,9 +20,10 @@ import (
 const _ = grpc.SupportPackageIsVersion7
 
 const (
-	BuilderService_WhoAmI_FullMethodName    = "/BuilderService/WhoAmI"
-	BuilderService_BuildRaw_FullMethodName  = "/BuilderService/BuildRaw"
-	BuilderService_BuildSpec_FullMethodName = "/BuilderService/BuildSpec"
+	BuilderService_WhoAmI_FullMethodName             = "/BuilderService/WhoAmI"
+	BuilderService_BuildRaw_FullMethodName           = "/BuilderService/BuildRaw"
+	BuilderService_BuildSpec_FullMethodName          = "/BuilderService/BuildSpec"
+	BuilderService_BuildHealthMetrics_FullMethodName = "/BuilderService/BuildHealthMetrics"
 )
 
 // BuilderServiceClient is the client API for BuilderService service.
@@ -32,6 +33,7 @@ type BuilderServiceClient interface {
 	WhoAmI(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*BWhoAmIResponse, error)
 	BuildRaw(ctx context.Context, in *BuildRawRequest, opts ...grpc.CallOption) (*BuildRawResponse, error)
 	BuildSpec(ctx context.Context, in *BuildSpecRequest, opts ...grpc.CallOption) (*BuildSpecResponse, error)
+	BuildHealthMetrics(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*BuildHealthResponse, error)
 }
 
 type builderServiceClient struct {
@@ -69,6 +71,15 @@ func (c *builderServiceClient) BuildSpec(ctx context.Context, in *BuildSpecReque
 	return out, nil
 }
 
+func (c *builderServiceClient) BuildHealthMetrics(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*BuildHealthResponse, error) {
+	out := new(BuildHealthResponse)
+	err := c.cc.Invoke(ctx, BuilderService_BuildHealthMetrics_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // BuilderServiceServer is the server API for BuilderService service.
 // All implementations must embed UnimplementedBuilderServiceServer
 // for forward compatibility
@@ -76,6 +87,7 @@ type BuilderServiceServer interface {
 	WhoAmI(context.Context, *emptypb.Empty) (*BWhoAmIResponse, error)
 	BuildRaw(context.Context, *BuildRawRequest) (*BuildRawResponse, error)
 	BuildSpec(context.Context, *BuildSpecRequest) (*BuildSpecResponse, error)
+	BuildHealthMetrics(context.Context, *emptypb.Empty) (*BuildHealthResponse, error)
 	mustEmbedUnimplementedBuilderServiceServer()
 }
 
@@ -91,6 +103,9 @@ func (UnimplementedBuilderServiceServer) BuildRaw(context.Context, *BuildRawRequ
 }
 func (UnimplementedBuilderServiceServer) BuildSpec(context.Context, *BuildSpecRequest) (*BuildSpecResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method BuildSpec not implemented")
+}
+func (UnimplementedBuilderServiceServer) BuildHealthMetrics(context.Context, *emptypb.Empty) (*BuildHealthResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method BuildHealthMetrics not implemented")
 }
 func (UnimplementedBuilderServiceServer) mustEmbedUnimplementedBuilderServiceServer() {}
 
@@ -159,6 +174,24 @@ func _BuilderService_BuildSpec_Handler(srv interface{}, ctx context.Context, dec
 	return interceptor(ctx, in, info, handler)
 }
 
+func _BuilderService_BuildHealthMetrics_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(emptypb.Empty)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(BuilderServiceServer).BuildHealthMetrics(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: BuilderService_BuildHealthMetrics_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(BuilderServiceServer).BuildHealthMetrics(ctx, req.(*emptypb.Empty))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // BuilderService_ServiceDesc is the grpc.ServiceDesc for BuilderService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -177,6 +210,10 @@ var BuilderService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "BuildSpec",
 			Handler:    _BuilderService_BuildSpec_Handler,
+		},
+		{
+			MethodName: "BuildHealthMetrics",
+			Handler:    _BuilderService_BuildHealthMetrics_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
