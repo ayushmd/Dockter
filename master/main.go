@@ -88,21 +88,32 @@ var Master_ *Master = &Master{
 	},
 }
 
-func (m *Master) Join(peerurl, peerState string, CpuUsage, MemUsage, DiskUsage float64) {
-	fmt.Println("This is called by ", peerurl)
-	urlparsed := url.URL{
-		Host: peerurl,
+func (m *Master) HasJoined(peerurl string) int {
+	for i, serv := range m.ServerPool {
+		if serv.URL.Host == peerurl {
+			return i
+		}
 	}
-	m.ServerPool = append(m.ServerPool, &Backend{
-		URL:            urlparsed,
-		State:          peerState,
-		CurrentConnect: 0,
-		CpuUsage:       CpuUsage,
-		MemUsage:       MemUsage,
-		DiskUsage:      DiskUsage,
-		IsAlive:        true,
-	})
-
+	return -1
+}
+func (m *Master) Join(peerurl, peerState string, CpuUsage, MemUsage, DiskUsage float64) {
+	if i := m.HasJoined(peerurl); i == -1 {
+		fmt.Println("This is called by ", peerurl)
+		urlparsed := url.URL{
+			Host: peerurl,
+		}
+		m.ServerPool = append(m.ServerPool, &Backend{
+			URL:            urlparsed,
+			State:          peerState,
+			CurrentConnect: 0,
+			CpuUsage:       CpuUsage,
+			MemUsage:       MemUsage,
+			DiskUsage:      DiskUsage,
+			IsAlive:        true,
+		})
+	} else {
+		m.ServerPool[i].IsAlive = true
+	}
 }
 
 func (m *Master) GetServerPoolHandler() ([]byte, error) {

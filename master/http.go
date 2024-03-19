@@ -1,10 +1,7 @@
 package master
 
 import (
-	"encoding/json"
 	"fmt"
-	"io"
-	"log"
 	"net/http"
 	"strings"
 )
@@ -82,14 +79,18 @@ func (r *Router) Run(
 
 var router *Router = &Router{}
 
+func HasSubdomain(host string) bool {
+	splits := strings.Split(host, ".")
+	if len(splits) == 4 || len(splits) == 0 {
+		return false
+	}
+	return true
+}
+
 func Handler(w http.ResponseWriter, r *http.Request) {
-	fmt.Println("Has ", r.Host)
-	hasSubdomain := strings.Contains(r.Host, ".")
-	fmt.Println("Has ", hasSubdomain)
-	if false {
+	if HasSubdomain(r.Host) {
 		DynamicRouter(w, r)
 	} else {
-		fmt.Println(router.GetMapper)
 		router.Run(w, r)
 	}
 }
@@ -99,75 +100,15 @@ func DynamicRouter(w http.ResponseWriter, r *http.Request) {
 	task, ok := Master_.cacheDns.Get(subdo)
 	if ok {
 		http.Redirect(w, r, "http://"+task.URL.Host+r.URL.Path, http.StatusMovedPermanently)
+	} else {
+		w.WriteHeader(http.StatusNotFound)
+		fmt.Fprintf(w, "Page not found")
 	}
 }
 
 func NewMasterHttpInstance(port int) *http.Server {
-
-	router.Get("/hi", func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusOK)
-		fmt.Fprintf(w, "My router response")
-	})
-
-	router.Get("/GetServerData", func(w http.ResponseWriter, r *http.Request) {
-		servPoolData, err := Master_.GetServerPoolHandler()
-		fmt.Println(string(servPoolData))
-		if err != nil {
-			w.Write([]byte("Error occured"))
-		}
-		var resp map[string]string = map[string]string{
-			"backend": string(servPoolData),
-		}
-		w.Header().Set("Content-Type", "application/json")
-		jsonResp, err := json.Marshal(resp)
-		if err != nil {
-			log.Fatalf("Error happened in JSON marshal. Err: %s", err)
-		}
-		w.Write(jsonResp)
-	})
-
-	router.Post("/buildraw", func(w http.ResponseWriter, r *http.Request) {
-		var task TaskRawRequest
-		defer r.Body.Close()
-		body, _ := io.ReadAll(r.Body)
-		if err := json.Unmarshal(body, &task); err != nil {
-			w.WriteHeader(http.StatusInternalServerError)
-			fmt.Fprintf(w, "Error")
-		}
-		enc, _ := json.Marshal(task)
-		Master_.AddTask("BUILDRAW", enc)
-		w.WriteHeader(http.StatusOK)
-		fmt.Fprintf(w, "Added to queue")
-	})
-
-	router.Post("/buildfile", func(w http.ResponseWriter, r *http.Request) {
-		var task TaskFileRequest
-		defer r.Body.Close()
-		body, _ := io.ReadAll(r.Body)
-		if err := json.Unmarshal(body, &task); err != nil {
-			w.WriteHeader(http.StatusInternalServerError)
-			fmt.Fprintf(w, "Error")
-		}
-		enc, _ := json.Marshal(task)
-		Master_.AddTask("BUILDFILE", enc)
-		w.WriteHeader(http.StatusOK)
-		fmt.Fprintf(w, "Added to queue")
-	})
-
-	router.Post("/deploy", func(w http.ResponseWriter, r *http.Request) {
-		var task TaskImageRequest
-		defer r.Body.Close()
-		body, _ := io.ReadAll(r.Body)
-		if err := json.Unmarshal(body, &task); err != nil {
-			w.WriteHeader(http.StatusInternalServerError)
-			fmt.Fprintf(w, "Error")
-		}
-		enc, _ := json.Marshal(task)
-		Master_.AddTask("DEPLOY", enc)
-		w.WriteHeader(http.StatusOK)
-		fmt.Fprintf(w, "Added to queue")
-	})
-
+	LoadApi(router)
+	LoadUI(router)
 	return &http.Server{
 		Addr:    fmt.Sprintf(":%d", port),
 		Handler: http.HandlerFunc(Handler),

@@ -11,14 +11,17 @@ type MasterGrpc struct {
 	masterrpc.UnimplementedMasterServiceServer
 }
 
-func (m *MasterGrpc) Join(ctx context.Context, in *masterrpc.JoinRequest) (*masterrpc.JoinResponse, error) {
-	// URL:            urlparsed,
-	// 	State:          peerState,
-	// 	CurrentConnect: 0,
-	// 	CpuUsage:       CpuUsage,
-	// 	MemUsage:       MemUsage,
-	// 	DiskUsage:      DiskUsage,
-	// 	IsAlive:        true,
+func (m *MasterGrpc) Join(ctx context.Context, in *masterrpc.JoinServer) (*masterrpc.JoinResponse, error) {
+	var servpool []*masterrpc.JoinServer
+	for _, server := range Master_.ServerPool {
+		servpool = append(servpool, &masterrpc.JoinServer{
+			Url:       server.URL.Host,
+			State:     server.State,
+			CpuUsage:  float32(server.CpuUsage),
+			MemUsage:  float32(server.MemUsage),
+			DiskUsage: float32(server.DiskUsage),
+		})
+	}
 	Master_.Join(
 		in.GetUrl(),
 		in.GetState(),
@@ -27,7 +30,7 @@ func (m *MasterGrpc) Join(ctx context.Context, in *masterrpc.JoinRequest) (*mast
 		float64(in.GetDiskUsage()),
 	)
 	return &masterrpc.JoinResponse{
-		Success: true,
+		ServerPool: servpool,
 	}, nil
 }
 

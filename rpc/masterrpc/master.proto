@@ -8,7 +8,7 @@ message MWhoAmIResponse{
     string State = 1;
 }
 
-message JoinRequest{
+message JoinServer{
     string url = 1; // ip:port
     string State = 2;
     float CpuUsage = 3;
@@ -17,10 +17,10 @@ message JoinRequest{
 }
 
 message JoinResponse{
-    bool Success =1;
+    repeated JoinServer ServerPool = 1;
 }
 
 service MasterService {
     rpc WhoAmI(google.protobuf.Empty) returns (MWhoAmIResponse) {}
-    rpc Join(JoinRequest) returns (JoinResponse) {}
+    rpc Join(JoinServer) returns (JoinResponse) {}
 }

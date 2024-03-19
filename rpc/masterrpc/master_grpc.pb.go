@@ -29,7 +29,7 @@ const (
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type MasterServiceClient interface {
 	WhoAmI(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*MWhoAmIResponse, error)
-	Join(ctx context.Context, in *JoinRequest, opts ...grpc.CallOption) (*JoinResponse, error)
+	Join(ctx context.Context, in *JoinServer, opts ...grpc.CallOption) (*JoinResponse, error)
 }
 
 type masterServiceClient struct {
@@ -49,7 +49,7 @@ func (c *masterServiceClient) WhoAmI(ctx context.Context, in *emptypb.Empty, opt
 	return out, nil
 }
 
-func (c *masterServiceClient) Join(ctx context.Context, in *JoinRequest, opts ...grpc.CallOption) (*JoinResponse, error) {
+func (c *masterServiceClient) Join(ctx context.Context, in *JoinServer, opts ...grpc.CallOption) (*JoinResponse, error) {
 	out := new(JoinResponse)
 	err := c.cc.Invoke(ctx, MasterService_Join_FullMethodName, in, out, opts...)
 	if err != nil {
@@ -63,7 +63,7 @@ func (c *masterServiceClient) Join(ctx context.Context, in *JoinRequest, opts ..
 // for forward compatibility
 type MasterServiceServer interface {
 	WhoAmI(context.Context, *emptypb.Empty) (*MWhoAmIResponse, error)
-	Join(context.Context, *JoinRequest) (*JoinResponse, error)
+	Join(context.Context, *JoinServer) (*JoinResponse, error)
 	mustEmbedUnimplementedMasterServiceServer()
 }
 
@@ -74,7 +74,7 @@ type UnimplementedMasterServiceServer struct {
 func (UnimplementedMasterServiceServer) WhoAmI(context.Context, *emptypb.Empty) (*MWhoAmIResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method WhoAmI not implemented")
 }
-func (UnimplementedMasterServiceServer) Join(context.Context, *JoinRequest) (*JoinResponse, error) {
+func (UnimplementedMasterServiceServer) Join(context.Context, *JoinServer) (*JoinResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Join not implemented")
 }
 func (UnimplementedMasterServiceServer) mustEmbedUnimplementedMasterServiceServer() {}
@@ -109,7 +109,7 @@ func _MasterService_WhoAmI_Handler(srv interface{}, ctx context.Context, dec fun
 }
 
 func _MasterService_Join_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(JoinRequest)
+	in := new(JoinServer)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -121,7 +121,7 @@ func _MasterService_Join_Handler(srv interface{}, ctx context.Context, dec func(
 		FullMethod: MasterService_Join_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(MasterServiceServer).Join(ctx, req.(*JoinRequest))
+		return srv.(MasterServiceServer).Join(ctx, req.(*JoinServer))
 	}
 	return interceptor(ctx, in, info, handler)
 }

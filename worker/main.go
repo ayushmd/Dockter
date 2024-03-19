@@ -22,14 +22,9 @@ type LocalTask struct {
 	ContainerID string
 }
 
-type Backend struct {
-	URL            url.URL `json:"url"`
-	State          string  `json:"state"`
-	IsAlive        bool    `json:"isalive"`
-	CurrentConnect int     `json:"connections"`
-	CpuUsage       float64 `json:"cpu"`
-	MemUsage       float64 `json:"mem"`
-	DiskUsage      float64 `json:"disk"`
+type BackendCopy struct {
+	URL   url.URL `json:"url"`
+	State string  `json:"state"`
 	// mux            sync.RWMutex
 	//Algo part
 }
@@ -37,7 +32,7 @@ type Backend struct {
 type Worker struct {
 	Port       int
 	Master     url.URL
-	ServerPool []*Backend
+	ServerPool []*BackendCopy
 	cacheDns   *lru.Cache[string, LocalTask]
 }
 
@@ -109,9 +104,9 @@ func (w *Worker) JoinMaster(masterurl string) {
 	if err != nil {
 		panic("Health")
 	}
-	_, err = master.Join(
+	joinresp, err := master.Join(
 		context.Background(),
-		&masterrpc.JoinRequest{
+		&masterrpc.JoinServer{
 			Url:       myurl,
 			State:     "WORKER",
 			CpuUsage:  float32(CpuUsage),
@@ -121,6 +116,14 @@ func (w *Worker) JoinMaster(masterurl string) {
 	)
 	if err != nil {
 		panic("Join error")
+	}
+	for _, servInPool := range joinresp.GetServerPool() {
+		w.ServerPool = append(w.ServerPool, &BackendCopy{
+			URL: url.URL{
+				Host: servInPool.Url,
+			},
+			State: servInPool.State,
+		})
 	}
 	// do get response and hydrate Serverpool
 }
