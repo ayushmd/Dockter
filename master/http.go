@@ -79,20 +79,26 @@ func (r *Router) Run(
 
 var router *Router = &Router{}
 
-func HasSubdomain(host string) bool {
-	splits := strings.Split(host, ".")
-	if len(splits) == 4 || len(splits) == 1 {
-		return false
-	}
-	return true
-}
+// func HasSubdomain(path string) bool {
+// 	if ;; ok{
+
+// 	}
+// }
 
 func Handler(w http.ResponseWriter, r *http.Request) {
-	if HasSubdomain(r.Host) {
-		DynamicRouter(w, r)
+	keys := strings.Split(r.URL.Path, "/")
+	task, ok := Master_.cacheDns.Get(keys[0])
+	actualpth := strings.Join(keys[1:], "/")
+	if ok {
+		http.Redirect(w, r, "http://"+task.URL.Host+actualpth, http.StatusMovedPermanently)
 	} else {
 		router.Run(w, r)
 	}
+	// if HasSubdomain(r.URL.Path) {
+	// 	DynamicRouter(w, r)
+	// } else {
+	// 	router.Run(w, r)
+	// }
 }
 
 func DynamicRouter(w http.ResponseWriter, r *http.Request) {
