@@ -101,7 +101,8 @@ func (w *Worker) JoinMaster(masterurl string) {
 	myurl := fmt.Sprintf(":%d", w.Port)
 	fmt.Println("Till here ", myurl)
 	CpuUsage, MemUsage, DiskUsage, err := internal.HealthMetrics()
-	if err != nil {
+	fmt.Printf("The cpu usage is %f",CpuUsage)
+if err != nil {
 		panic("Health")
 	}
 	joinresp, err := master.Join(

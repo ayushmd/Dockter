@@ -38,7 +38,7 @@ func (b *Builder) GetWorkdir() string {
 }
 
 func (b *Builder) Copyfiles(Name string) string {
-	return fmt.Sprintf("COPY /%s .", Name)
+	return fmt.Sprintf("COPY /%s /app", Name)
 }
 
 func (b *Builder) GetRunCommand(BuildCmd string) string {
@@ -90,7 +90,7 @@ func (b *Builder) BuildRaw(
 		return "", "", err
 	}
 
-	buildContext, err := os.Open(Name)
+	buildContext, err := os.Open(fmt.Sprintf("%s/Dockerfile",Name))
 	if err != nil {
 		fmt.Printf("Failed to open build context: %v\n", err)
 		return "", "", err
