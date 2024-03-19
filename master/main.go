@@ -325,6 +325,7 @@ func (m *Master) Deploy(message kafka.Message) {
 	if err != nil {
 		panic("Connection failed")
 	}
+	fmt.Println("The recieved stuff ", configs.Name, configs.DockerImage, configs.RunningPort)
 	worker := workerrpc.NewWorkerServiceClient(conn)
 	buildRawResponse, err := worker.AddTask(
 		context.Background(),
@@ -353,7 +354,7 @@ func (m *Master) KafkaHandler(message kafka.Message) {
 		m.BuildRaw(message)
 	case "BUILDWITHFILE":
 		m.BuildFile(message)
-	case "DEPLOYIMAGE":
+	case "DEPLOY":
 		m.Deploy(message)
 	}
 }
