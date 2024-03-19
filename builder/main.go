@@ -22,12 +22,12 @@ type Builder struct {
 var Builder_ *Builder = &Builder{}
 
 func (b *Builder) GetBaseEnvironment(RuntimeEnv string) string {
-	switch RuntimeEnv {
-	case "Python":
+	switch strings.ToLower(RuntimeEnv) {
+	case "python":
 		return "FROM python:3.9"
-	case "Node":
+	case "node":
 		return "FROM node:latest"
-	case "Go":
+	case "go":
 		return "FROM golang:1.16"
 	}
 	return ""
@@ -38,7 +38,7 @@ func (b *Builder) GetWorkdir() string {
 }
 
 func (b *Builder) Copyfiles(Name string) string {
-	return fmt.Sprintf("COPY ./%s ./", Name)
+	return fmt.Sprintf("COPY /%s .", Name)
 }
 
 func (b *Builder) GetRunCommand(BuildCmd string) string {
@@ -106,6 +106,7 @@ func (b *Builder) BuildRaw(
 	}
 	lines := doc.ExecuteCommand(containerID, []string{"netstat", "-tuln"})
 	port := internal.FindFirstPort(lines)
+	fmt.Println("ThE PORT IS ", port)
 	doc.TrashContainer(containerID)
 	tag := doc.PushToRegistry(
 		Name,
