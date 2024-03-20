@@ -4,7 +4,7 @@ import (
 	"os/exec"
 )
 
-var allowedCmdNames []string = []string{"git", "node", "npm", "go", "docker"}
+var allowedCmdNames []string = []string{"git", "node", "npm", "go", "docker", "sudo"}
 
 func isAllowed(name string) bool {
 	for _, cmdNames := range allowedCmdNames {
