@@ -336,7 +336,7 @@ func (m *Master) Deploy(message kafka.Message) {
 		},
 	)
 	if err != nil {
-		panic("Couldnt marshal 5")
+		panic(err)
 	}
 	m.cacheDns.Add(configs.Name, Task{
 		Subdomain:   configs.Name,
