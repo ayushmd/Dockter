@@ -105,9 +105,13 @@ func (b *Builder) BuildRaw(
 	if err != nil {
 		return "", "", err
 	}
-	// lines := doc.ExecuteCommand(containerID, []string{"netstat", "-tuln"})
-	// port := internal.FindFirstPort(lines)
-	port := FindPort(containerID)
+	lines := doc.ExecuteCommand(containerID, []string{"netstat", "-tuln"})
+	fmt.Println(lines)
+	port := internal.FindFirstPort(lines)
+	if port == "" {
+		port = "3000"
+	}
+	// port := FindPort(containerID)
 	fmt.Println("ThE PORT IS ", port)
 	doc.TrashContainer(containerID)
 	tag := doc.PushToRegistry(

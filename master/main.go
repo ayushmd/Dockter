@@ -261,7 +261,7 @@ func (m *Master) BuildRaw(message kafka.Message) {
 		},
 	)
 	if err != nil {
-		panic("Couldnt marshal 1")
+		panic(err)
 	}
 	sendDeploy, err := json.Marshal(TaskImageRequest{
 		Name:        buildRawResponse.GetName(),
