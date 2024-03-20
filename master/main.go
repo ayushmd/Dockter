@@ -261,7 +261,7 @@ func (m *Master) BuildRaw(message kafka.Message) {
 		},
 	)
 	if err != nil {
-		panic("Couldnt marshal")
+		panic("Couldnt marshal 1")
 	}
 	sendDeploy, err := json.Marshal(TaskImageRequest{
 		Name:        buildRawResponse.GetName(),
@@ -269,7 +269,7 @@ func (m *Master) BuildRaw(message kafka.Message) {
 		RunningPort: buildRawResponse.GetRunningPort(),
 	})
 	if err != nil {
-		panic("Couldnt marshal")
+		panic("Couldnt marshal 2")
 	}
 	m.AddTask("DEPLOY", sendDeploy)
 }
@@ -298,7 +298,7 @@ func (m *Master) BuildFile(message kafka.Message) {
 		},
 	)
 	if err != nil {
-		panic("Couldnt marshal")
+		panic("Couldnt marshal 3")
 	}
 	sendDeploy, err := json.Marshal(TaskImageRequest{
 		Name:        buildRawResponse.GetName(),
@@ -306,7 +306,7 @@ func (m *Master) BuildFile(message kafka.Message) {
 		RunningPort: buildRawResponse.GetRunningPort(),
 	})
 	if err != nil {
-		panic("Couldnt marshal")
+		panic("Couldnt marshal 4")
 	}
 	m.AddTask("DEPLOY", sendDeploy)
 }
@@ -336,7 +336,7 @@ func (m *Master) Deploy(message kafka.Message) {
 		},
 	)
 	if err != nil {
-		panic("Couldnt marshal")
+		panic("Couldnt marshal 5")
 	}
 	m.cacheDns.Add(configs.Name, Task{
 		Subdomain:   configs.Name,
