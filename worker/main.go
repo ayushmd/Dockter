@@ -5,10 +5,9 @@ import (
 	"fmt"
 	"net/url"
 
+	"github.com/ayush18023/Load_balancer_Fyp/builder"
 	"github.com/ayush18023/Load_balancer_Fyp/internal"
 	"github.com/ayush18023/Load_balancer_Fyp/rpc/masterrpc"
-	"github.com/docker/docker/api/types/container"
-	"github.com/docker/go-connections/nat"
 	lru "github.com/hashicorp/golang-lru/v2"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
@@ -53,27 +52,28 @@ func (w *Worker) AddTask(id, imageName, runningPort string) (string, error) {
 	}
 	strPort := fmt.Sprintf("%d", port)
 	fmt.Println(strPort)
-	portBindings := nat.PortMap{
-		nat.Port(runningPort): []nat.PortBinding{
-			{
-				HostIP:   "0.0.0.0",
-				HostPort: strPort,
-			},
-		},
-	}
-	containerID, err := doc.RunContainer(
-		imageName,
-		&container.HostConfig{
-			NetworkMode:  "host",
-			PortBindings: portBindings,
-		},
-	)
+	// portBindings := nat.PortMap{
+	// 	nat.Port(runningPort): []nat.PortBinding{
+	// 		{
+	// 			HostIP:   "0.0.0.0",
+	// 			HostPort: strPort,
+	// 		},
+	// 	},
+	// }
+	// containerID, err := doc.RunContainer(
+	// 	imageName,
+	// 	&container.HostConfig{
+	// 		NetworkMode:  "host",
+	// 		PortBindings: portBindings,
+	// 	},
+	// )
+	builder.RunContainer(imageName, strPort, runningPort)
 	if err != nil {
 		return "", err
 	}
 	w.cacheDns.Add(id, LocalTask{
 		Subdomain:   id,
-		ContainerID: containerID,
+		ContainerID: "",
 		ImageName:   imageName,
 		Runningport: runningPort,
 		Hostport:    strPort,

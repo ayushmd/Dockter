@@ -2,6 +2,7 @@ package builder
 
 import (
 	"bytes"
+	"fmt"
 	"log"
 	"os"
 	"os/exec"
@@ -39,11 +40,13 @@ func CreateImage(imageName string) {
 	}
 }
 
-func RunContainer(imageName string) {
+func RunContainer(imageName string, hostPorst string, runningPort string) {
 	cmd := Cmd(
 		"sudo",
 		"docker",
 		"run",
+		"-p",
+		fmt.Sprintf("%s:%s", hostPorst, runningPort),
 		"-d",
 		"--name",
 		imageName,
