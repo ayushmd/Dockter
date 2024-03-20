@@ -52,6 +52,7 @@ func (w *Worker) AddTask(id, imageName, runningPort string) (string, error) {
 		panic("port not found")
 	}
 	strPort := fmt.Sprintf("%d", port)
+	fmt.Println(strPort)
 	portBindings := nat.PortMap{
 		nat.Port(runningPort): []nat.PortBinding{
 			{
@@ -101,8 +102,8 @@ func (w *Worker) JoinMaster(masterurl string) {
 	myurl := fmt.Sprintf(":%d", w.Port)
 	fmt.Println("Till here ", myurl)
 	CpuUsage, MemUsage, DiskUsage, err := internal.HealthMetrics()
-	fmt.Printf("The cpu usage is %f",CpuUsage)
-if err != nil {
+	fmt.Printf("The cpu usage is %f", CpuUsage)
+	if err != nil {
 		panic("Health")
 	}
 	joinresp, err := master.Join(
