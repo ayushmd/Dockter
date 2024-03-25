@@ -9,6 +9,7 @@ import (
 
 	"github.com/ayush18023/Load_balancer_Fyp/internal"
 	"github.com/ayush18023/Load_balancer_Fyp/rpc/workerrpc"
+	lru "github.com/hashicorp/golang-lru/v2"
 	"google.golang.org/grpc"
 	"google.golang.org/protobuf/types/known/emptypb"
 )
@@ -56,6 +57,11 @@ func (w *WorkerServer) AddTask(ctx context.Context, in *workerrpc.Task) (*worker
 }
 
 func NewWorkerServer(port int) {
+	cache, err := lru.New[string, LocalTask](128)
+	if err != nil {
+		log.Fatal("Master server not started")
+	}
+	Worker_.cacheDns = cache
 	var waitgrp sync.WaitGroup
 	waitgrp.Add(1)
 	Worker_.Port = port

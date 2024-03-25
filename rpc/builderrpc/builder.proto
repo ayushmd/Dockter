@@ -16,6 +16,7 @@ message BuildRawRequest{
     string StartCmd = 5;
     string RuntimeEnv = 6;
     map<string, string> EnvVars= 7;
+    string runningPort = 8;
 }
 
 message BuildRawResponse{

@@ -3,12 +3,17 @@ package builder
 import (
 	"context"
 	"fmt"
+	"log"
 	"net/url"
 	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/ayush18023/Load_balancer_Fyp/internal"
+	"github.com/ayush18023/Load_balancer_Fyp/internal/auth"
 	"github.com/ayush18023/Load_balancer_Fyp/rpc/masterrpc"
+	"github.com/docker/docker/api/types/container"
+	"github.com/docker/go-connections/nat"
 	"github.com/go-git/go-git/v5"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
@@ -19,7 +24,7 @@ type Builder struct {
 	Master url.URL
 }
 
-var Builder_ *Builder = &Builder{}
+var Builder_ *Builder
 
 func (b *Builder) GetBaseEnvironment(RuntimeEnv string) string {
 	switch strings.ToLower(RuntimeEnv) {
@@ -35,6 +40,14 @@ func (b *Builder) GetBaseEnvironment(RuntimeEnv string) string {
 
 func (b *Builder) GetWorkdir() string {
 	return "WORKDIR /app"
+}
+
+func (b *Builder) GetEnvVariables(EnvVars map[string]string) string {
+	variables := ""
+	for key, value := range EnvVars {
+		variables += fmt.Sprintf("ENV %s=%s", key, value) + "\n"
+	}
+	return variables
 }
 
 func (b *Builder) Copyfiles(Name string) string {
@@ -56,69 +69,80 @@ func (b *Builder) GetStartCommand(StartCmd string) string {
 	return fmt.Sprintf("CMD %s", cmdStr)
 }
 
-func (b *Builder) BuildDockerLayers(Name, BuildCmd, StartCmd, RuntimeEnv string) string {
+func (b *Builder) BuildDockerLayers(Name, BuildCmd, StartCmd, RuntimeEnv string, EnvVars map[string]string) string {
 	var DockerFileContent string
 	DockerFileContent += b.GetBaseEnvironment(RuntimeEnv) + "\n"
 	DockerFileContent += b.GetWorkdir() + "\n"
+	DockerFileContent += b.GetEnvVariables(EnvVars) + "\n"
 	DockerFileContent += b.Copyfiles(Name) + "\n"
 	DockerFileContent += b.GetRunCommand(BuildCmd) + "\n"
 	DockerFileContent += b.GetStartCommand(StartCmd) + "\n"
 	return DockerFileContent
 }
 
+const localCloneRepo string = "repos"
+
 func (b *Builder) BuildRaw(
-	Name, GitLink, Branch, BuildCmd, StartCmd, RuntimeEnv string,
+	Name, GitLink, Branch, BuildCmd, StartCmd, RuntimeEnv string, runningPort string,
 	EnvVars map[string]string,
-) (string, string, error) {
-	_, err := git.PlainClone(Name, false, &git.CloneOptions{
+) (string, error) {
+	var (
+		// buildCtx io.ReadCloser
+		err error
+	)
+
+	filpth := filepath.Join(localCloneRepo, Name)
+	relDockerFile := filepath.Join(filpth, "Dockerfile")
+
+	_, err = git.PlainClone(filpth, false, &git.CloneOptions{
 		URL:      GitLink,
 		Progress: os.Stdout,
 	})
 
 	if err != nil && err != git.ErrRepositoryAlreadyExists {
 		fmt.Printf("Failed to clone repository: %v\n", err)
-		return "", "", err
+		return "", err
 	}
-	dockerfileContent := []byte(b.BuildDockerLayers(Name, BuildCmd, StartCmd, RuntimeEnv))
+
+	dockerfileContent := []byte(b.BuildDockerLayers(Name, BuildCmd, StartCmd, RuntimeEnv, EnvVars))
 	err = os.WriteFile(
-		fmt.Sprintf("%s/Dockerfile", Name),
+		relDockerFile,
 		dockerfileContent,
 		0644,
 	)
 	if err != nil {
 		fmt.Printf("Failed to write Dockerfile: %v\n", err)
-		return "", "", err
+		return "", err
 	}
-
-	// dockerfile, err := os.Open(Name)
-	// if err != nil {
-	// 	fmt.Printf("Failed to open build context: %v\n", err)
-	// 	return "", "", err
-	// }
-	// defer dockerfile.Close()
+	CreateImage(Name, filpth)
 	doc := internal.Dockter{}
 	doc.Init()
 	defer doc.Close()
-	// doc.CreateImage(Name, dockerfile)
-	CreateImage(Name)
-	containerID, err := doc.RunContainer(Name, nil)
+	hostport, err := internal.GetFreePort()
 	if err != nil {
-		return "", "", err
+		log.Fatal(err)
 	}
-	lines := doc.ExecuteCommand(containerID, []string{"netstat", "-tuln"})
-	fmt.Println(lines)
-	port := internal.FindFirstPort(lines)
-	if port == "" {
-		port = "3000"
+	hostConfig := &container.HostConfig{
+		PortBindings: nat.PortMap{
+			nat.Port(runningPort): []nat.PortBinding{
+				{
+					HostIP:   "0.0.0.0",
+					HostPort: fmt.Sprintf("%d/tcp", hostport),
+				},
+			},
+		},
+		NetworkMode: "host",
 	}
-	// port := FindPort(containerID)
-	fmt.Println("ThE PORT IS ", port)
-	doc.TrashContainer(containerID)
+	containerID, err := doc.RunContainer(Name, hostConfig)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer doc.TrashContainer(containerID)
 	tag := doc.PushToRegistry(
 		Name,
-		internal.GetKey("DOCKER_HUB_REPO_NAME"),
+		auth.GetKey("DOCKER_HUB_REPO_NAME"),
 	)
-	return tag, port, nil
+	return tag, nil
 }
 
 func (w *Builder) JoinMaster(masterurl string) {
@@ -134,10 +158,6 @@ func (w *Builder) JoinMaster(masterurl string) {
 		panic("Connection failed")
 	}
 	master := masterrpc.NewMasterServiceClient(conn)
-	// ip, err := internal.GetIP()
-	// if err != nil {
-	// 	panic("Error ip")
-	// }
 	myurl := fmt.Sprintf(":%d", w.Port)
 	fmt.Println("Till here ", myurl)
 	CpuUsage, MemUsage, DiskUsage, err := internal.HealthMetrics()

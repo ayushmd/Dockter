@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/ayush18023/Load_balancer_Fyp/internal"
+	"github.com/ayush18023/Load_balancer_Fyp/internal/auth"
 	lru "github.com/hashicorp/golang-lru/v2"
 	"google.golang.org/grpc"
 )
@@ -44,8 +45,8 @@ func NewMasterServer(port int) {
 		httpServer: NewMasterHttpInstance(port + 1),
 		kReader: &internal.KafkaReader{
 			Reader: internal.KafkaUPAuthReader(
-				internal.GetKey("UPSTASH_KAFKA_TOPIC"),
-				internal.GetKey("UPSTASH_KAFKA_GROUP"),
+				auth.GetKey("UPSTASH_KAFKA_TOPIC"),
+				auth.GetKey("UPSTASH_KAFKA_GROUP"),
 			),
 		},
 	}

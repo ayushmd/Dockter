@@ -3,50 +3,126 @@ package main
 import (
 	"flag"
 	"fmt"
+	"log"
 	"sync"
 
-	// "os"
 	"github.com/ayush18023/Load_balancer_Fyp/builder"
+	"github.com/ayush18023/Load_balancer_Fyp/internal"
+	"github.com/ayush18023/Load_balancer_Fyp/internal/auth"
 	"github.com/ayush18023/Load_balancer_Fyp/master"
 	"github.com/ayush18023/Load_balancer_Fyp/worker"
+	"github.com/joho/godotenv"
 )
+
+// "os"
 
 var Port int
 var State string
+var DefaultPort = 3210
 
 func main() {
+	err := godotenv.Load(".env")
+
+	if err != nil {
+		log.Fatalf("Error loading .env file")
+	}
+	// builder.CreateImage("ayush", "ayush")
+	// builder.BuildContainer("ayush")
+	// fmt.Println(builder.FindPort("ayush"))
+	// doc := internal.Dockter{}
+	// doc.Init()
+	// defer doc.Close()
+	// outputlines := doc.ExecuteCommand("ayush", []string{"netstat", "-tuln"})
+	// port := internal.FindFirstPort(outputlines)
+	// fmt.Println(port)
+	// Name := "ayush"
+	// GitLink := "https://github.com/johnpapa/node-hello.git"
+	// Branch := "master"
+	// BuildCmd := "npm i"
+	// RunCmd := "npm start"
+	// RuntimeEnv := "Node"
+	// doc := internal.Dockter{}
+	// doc.Init()
+	// defer doc.Close()
+	// doc.BuildImage(internal.BuildOptions{
+	// 	Context:              GitLink,
+	// 	Label:                Name,
+	// 	GitBranch:            Branch,
+	// 	UseDefaultDockerFile: false,
+	// 	DockerfileContent:    builder.Builder_.BuildDockerLayers(Name, BuildCmd, RunCmd, RuntimeEnv, nil),
+	// })
+	// tag, port, err := builder.Builder_.BuildRaw(
+	// 	Name,
+	// 	GitLink,
+	// 	Branch,
+	// 	BuildCmd,
+	// 	RunCmd,
+	// 	RuntimeEnv,
+	// 	nil,
+	// )
+	// if port != "3000" || err != nil {
+	// 	fmt.Printf(`BuildRaw = %q, %v, want 3000, nil`, tag, port, err)
+	// }
+	// fmt.Println(builder.FindPort(Name))
 	var join string
-	flag.IntVar(&Port, "port", 3000, "Port to serve")
+	var generateToken bool
+	flag.IntVar(&Port, "port", DefaultPort, "Port to serve")
 	flag.StringVar(&State, "state", "", "Load balanced backends, use commas to separate")
 	flag.StringVar(&join, "join", "", "Join a master")
+	flag.BoolVar(&generateToken, "generatetoken", false, "Gives the token to join master")
 	flag.Parse()
 	fmt.Println("The port is: ", Port)
 	fmt.Println("The state is: ", State)
-	var waitgrp sync.WaitGroup
-	waitgrp.Add(1)
-	if State == "WORKER" {
-		go func() {
-			defer waitgrp.Done()
-			worker.NewWorkerServer(Port)
-		}()
-		if join != "" {
-			worker.Worker_.JoinMaster(join)
+	if !generateToken {
+		var waitgrp sync.WaitGroup
+		waitgrp.Add(1)
+		if State == "MASTER" {
+			go func() {
+				defer waitgrp.Done()
+				master.NewMasterServer(Port)
+			}()
+		} else {
+			var addr string
+			if join != "" {
+				addr = auth.ParseAccessToken(join).Address
+			}
+			fmt.Println(addr)
+			if State == "WORKER" {
+				go func() {
+					defer waitgrp.Done()
+					worker.NewWorkerServer(Port)
+				}()
+				if join != "" {
+					worker.Worker_.JoinMaster(addr)
+				}
+			} else if State == "BUILDER" {
+				go func() {
+					defer waitgrp.Done()
+					builder.NewBuilderServer(Port)
+				}()
+				if join != "" {
+					builder.Builder_.JoinMaster(addr)
+				}
+			} else {
+				log.Fatal("State not recognized")
+			}
 		}
-	} else if State == "MASTER" {
-		go func() {
-			defer waitgrp.Done()
-			master.NewMasterServer(Port)
-		}()
+		waitgrp.Wait()
 	} else {
-		go func() {
-			defer waitgrp.Done()
-			builder.NewBuilderServer(Port)
-		}()
-		if join != "" {
-			builder.Builder_.JoinMaster(join)
+		myip, err := internal.GetMyIP()
+		if err != nil {
+			log.Fatal(err)
 		}
+		addr := fmt.Sprintf("%s:%d", myip, DefaultPort)
+		tokenClaim := auth.MasterClaim{
+			Address: addr,
+		}
+		authToken, err := auth.NewAccessToken(tokenClaim)
+		if err != nil {
+			log.Fatal("error in genrating jwt")
+		}
+		fmt.Println(authToken)
 	}
-	waitgrp.Wait()
 	// if len(serverList) == 0 {
 	// 	log.Fatal("Please provide one or more backends to load balance")
 	// }

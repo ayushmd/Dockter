@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"fmt"
 	"log"
-	"os"
 	"os/exec"
 	"strings"
 )
@@ -22,14 +21,13 @@ func CloneRepo(link string) {
 	}
 }
 
-func CreateImage(imageName string) {
+func CreateImage(imageName string, path string) {
 	cmd := Cmd(
-		"sudo",
 		"docker",
 		"build",
 		"-t",
 		imageName+":latest",
-		"./"+imageName,
+		path,
 	)
 	if cmd == nil {
 		log.Fatal("Command not allowed")
@@ -40,9 +38,27 @@ func CreateImage(imageName string) {
 	}
 }
 
-func RunContainer(imageName string, hostPorst string, runningPort string) {
+func BuildContainer(imageName string) {
 	cmd := Cmd(
-		"sudo",
+		"docker",
+		"run",
+		"-d",
+		"-i",
+		"--name",
+		imageName,
+		imageName,
+	)
+	if cmd == nil {
+		log.Fatal("Command not allowed")
+	}
+	err := cmd.Run()
+	if err != nil {
+		log.Fatal("Couldnt Run Docker container")
+	}
+}
+
+func RunContainerWithPort(imageName string, hostPorst string, runningPort string) {
+	cmd := Cmd(
 		"docker",
 		"run",
 		"-p",
@@ -64,7 +80,6 @@ func RunContainer(imageName string, hostPorst string, runningPort string) {
 func TrashContainer(imageName string) {
 	var cmd *exec.Cmd
 	cmd = Cmd(
-		"sudo",
 		"docker",
 		"kill",
 		imageName,
@@ -74,7 +89,6 @@ func TrashContainer(imageName string) {
 	}
 	cmd.Run()
 	cmd = Cmd(
-		"sudo",
 		"docker",
 		"rm",
 		imageName,
@@ -88,7 +102,6 @@ func TrashContainer(imageName string) {
 func ClearImages(imageName string) {
 	var cmd *exec.Cmd
 	cmd = Cmd(
-		"sudo",
 		"docker",
 		"rmi",
 		imageName,
@@ -98,7 +111,6 @@ func ClearImages(imageName string) {
 	}
 	cmd.Run()
 	cmd = Cmd(
-		"sudo",
 		"docker",
 		"rmi",
 		reponame+":"+imageName,
@@ -111,7 +123,6 @@ func ClearImages(imageName string) {
 
 func FindPort(imageName string) string {
 	cmd := Cmd(
-		"sudo",
 		"docker",
 		"exec",
 		imageName,
@@ -128,8 +139,10 @@ func FindPort(imageName string) string {
 		log.Fatal("Error executing command:", err)
 	}
 	outputLines := strings.Split(out.String(), "\n")
+	fmt.Println(outputLines)
 	var runningPorts []string
 	for _, line := range outputLines {
+		fmt.Println(line)
 		if strings.Contains(line, "LISTEN") {
 			fields := strings.Fields(line)
 			if len(fields) >= 4 {
@@ -147,24 +160,20 @@ func FindPort(imageName string) string {
 func PushToRegistery(imageName string) {
 	var cmd *exec.Cmd
 	cmd = Cmd(
-		"sudo",
 		"docker",
 		"tag",
 		imageName,
 		reponame+":"+imageName,
 	)
-	cmd.Stdout = os.Stdout
 	if cmd == nil {
 		log.Fatal("Command not allowed")
 	}
 	cmd.Run()
 	cmd = Cmd(
-		"sudo",
 		"docker",
 		"push",
 		reponame+":"+imageName,
 	)
-	cmd.Stdout = os.Stdout
 	if cmd == nil {
 		log.Fatal("Command not allowed")
 	}

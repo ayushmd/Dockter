@@ -8,6 +8,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/ayush18023/Load_balancer_Fyp/internal/auth"
 	"github.com/segmentio/kafka-go"
 	"github.com/segmentio/kafka-go/sasl/scram"
 )
@@ -23,15 +24,15 @@ type KafkaReader struct {
 func KafkaUPAuthWriter(topic string) *kafka.Writer {
 	mechanism, err := scram.Mechanism(
 		scram.SHA256,
-		GetKey("UPSTASH_KAFKA_USER"),
-		GetKey("UPSTASH_KAFKA_PASS"),
+		auth.GetKey("UPSTASH_KAFKA_USER"),
+		auth.GetKey("UPSTASH_KAFKA_PASS"),
 	)
 	if err != nil {
 		panic(err)
 	}
 	return &kafka.Writer{
 		Addr: kafka.TCP(
-			GetKey("UPSTASH_KAFKA_ADDR"),
+			auth.GetKey("UPSTASH_KAFKA_ADDR"),
 		),
 		Topic: topic,
 		Transport: &kafka.Transport{
@@ -51,8 +52,8 @@ func (k *KafkaWriter) Write(key, value []byte) {
 func KafkaUPAuthReader(topic, group string) *kafka.Reader {
 	mechanism, err := scram.Mechanism(
 		scram.SHA256,
-		GetKey("UPSTASH_KAFKA_USER"),
-		GetKey("UPSTASH_KAFKA_PASS"),
+		auth.GetKey("UPSTASH_KAFKA_USER"),
+		auth.GetKey("UPSTASH_KAFKA_PASS"),
 	)
 	if err != nil {
 		panic(err)

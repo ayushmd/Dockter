@@ -36,13 +36,14 @@ func (w *BuilderServer) BuildHealthMetrics(ctx context.Context, in *emptypb.Empt
 }
 
 func (w *BuilderServer) BuildRaw(ctx context.Context, in *builderrpc.BuildRawRequest) (*builderrpc.BuildRawResponse, error) {
-	image, port, err := Builder_.BuildRaw(
+	image, err := Builder_.BuildRaw(
 		in.GetName(),
 		in.GetGitlink(),
 		in.GetBranch(),
 		in.GetBuildCmd(),
 		in.GetStartCmd(),
 		in.GetRuntimeEnv(),
+		in.GetRunningPort(),
 		in.GetEnvVars(),
 	)
 	if err != nil {
@@ -52,7 +53,7 @@ func (w *BuilderServer) BuildRaw(ctx context.Context, in *builderrpc.BuildRawReq
 		Success:     true,
 		Name:        in.GetName(),
 		ImageName:   image,
-		RunningPort: port,
+		RunningPort: in.GetRunningPort(),
 	}, nil
 }
 

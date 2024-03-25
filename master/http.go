@@ -2,6 +2,7 @@ package master
 
 import (
 	"fmt"
+	"log"
 	"net/http"
 	"strings"
 )
@@ -79,30 +80,33 @@ func (r *Router) Run(
 
 var router *Router = &Router{}
 
-// func HasSubdomain(path string) bool {
-// 	if ;; ok{
-
-// 	}
-// }
+func HasSubdomain(host string) bool {
+	splits := strings.Split(host, ".")
+	if len(splits) != 1 || len(splits) != 4 {
+		return true
+	}
+	return false
+}
 
 func Handler(w http.ResponseWriter, r *http.Request) {
-	keys := strings.Split(r.URL.Path, "/")
-	task, ok := Master_.cacheDns.Get(keys[0])
-	actualpth := strings.Join(keys[1:], "/")
-	if ok {
-		http.Redirect(w, r, "http://"+task.URL.Host+actualpth, http.StatusMovedPermanently)
-	} else {
-		router.Run(w, r)
-	}
-	// if HasSubdomain(r.URL.Path) {
-	// 	DynamicRouter(w, r)
+	// keys := strings.Split(r.URL.Path, "/")
+	// task, ok := Master_.cacheDns.Get(keys[0])
+	// actualpth := strings.Join(keys[1:], "/")
+	// if ok {
+	// 	http.Redirect(w, r, "http://"+task.URL.Host+actualpth, http.StatusMovedPermanently)
 	// } else {
 	// 	router.Run(w, r)
 	// }
+	if HasSubdomain(r.URL.Host) {
+		DynamicRouter(w, r)
+	} else {
+		router.Run(w, r)
+	}
 }
 
 func DynamicRouter(w http.ResponseWriter, r *http.Request) {
-	subdo := strings.Split(r.Host, ".")[0]
+	subdo := strings.Split(r.URL.Host, ".")[0]
+	log.Println("Request to subdomain ", subdo)
 	task, ok := Master_.cacheDns.Get(subdo)
 	if ok {
 		http.Redirect(w, r, "http://"+task.URL.Host+r.URL.Path, http.StatusMovedPermanently)
