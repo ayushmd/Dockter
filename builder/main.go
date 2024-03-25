@@ -24,7 +24,7 @@ type Builder struct {
 	Master url.URL
 }
 
-var Builder_ *Builder
+var Builder_ *Builder = &Builder{}
 
 func (b *Builder) GetBaseEnvironment(RuntimeEnv string) string {
 	switch strings.ToLower(RuntimeEnv) {

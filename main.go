@@ -81,7 +81,6 @@ func main() {
 				defer waitgrp.Done()
 				master.NewMasterServer(Port)
 			}()
-			waitgrp.Wait()
 		} else {
 			var addr string
 			if join != "" {
@@ -93,7 +92,6 @@ func main() {
 					defer waitgrp.Done()
 					worker.NewWorkerServer(Port)
 				}()
-				waitgrp.Wait()
 				if join != "" {
 					worker.Worker_.JoinMaster(addr)
 				}
@@ -102,7 +100,6 @@ func main() {
 					defer waitgrp.Done()
 					builder.NewBuilderServer(Port)
 				}()
-				waitgrp.Wait()
 				if join != "" {
 					builder.Builder_.JoinMaster(addr)
 				}
@@ -110,6 +107,7 @@ func main() {
 				log.Fatal("State not recognized")
 			}
 		}
+		waitgrp.Wait()
 	} else {
 		myip, err := internal.GetMyIP()
 		if err != nil {

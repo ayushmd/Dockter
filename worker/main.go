@@ -36,7 +36,7 @@ type Worker struct {
 	cacheDns   *lru.Cache[string, LocalTask]
 }
 
-var Worker_ *Worker
+var Worker_ *Worker = &Worker{}
 
 func (w *Worker) AddTask(id, imageName, runningPort string) (string, error) {
 	// repoimageName := internal.GetKey("DOCKER_HUB_REPO_NAME") + imageName

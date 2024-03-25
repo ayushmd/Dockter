@@ -87,7 +87,7 @@ type Master struct {
 	cacheDns   *lru.Cache[string, Task]
 }
 
-var Master_ *Master
+var Master_ *Master = &Master{}
 
 var kacp = keepalive.ClientParameters{
 	Timeout:             2 * time.Second, // wait 1 second for ping ack before considering the connection dead

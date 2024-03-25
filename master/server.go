@@ -28,12 +28,10 @@ func NewMasterServer(port int) {
 	if err != nil {
 		log.Fatal("Master server not started")
 	}
-	Master_ = &Master{
-		kwriter: &internal.KafkaWriter{
-			Writer: internal.KafkaUPAuthWriter("build"),
-		},
-		cacheDns: cache,
+	Master_.kwriter = &internal.KafkaWriter{
+		Writer: internal.KafkaUPAuthWriter("build"),
 	}
+	Master_.cacheDns = cache
 	var waitgrp sync.WaitGroup
 	lis, err := net.Listen("tcp", fmt.Sprintf(":%d", port))
 	if err != nil {
