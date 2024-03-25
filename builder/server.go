@@ -60,7 +60,9 @@ func (w *BuilderServer) BuildRaw(ctx context.Context, in *builderrpc.BuildRawReq
 func NewBuilderServer(port int) {
 	var waitgrp sync.WaitGroup
 	waitgrp.Add(1)
-	Builder_.Port = port
+	Builder_ = &Builder{
+		Port: port,
+	}
 	lis, err := net.Listen("tcp", fmt.Sprintf(":%d", port))
 	if err != nil {
 		panic("builder server not started")

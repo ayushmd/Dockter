@@ -61,7 +61,9 @@ func NewWorkerServer(port int) {
 	if err != nil {
 		log.Fatal("Master server not started")
 	}
-	Worker_.cacheDns = cache
+	Worker_ = &Worker{
+		cacheDns: cache,
+	}
 	var waitgrp sync.WaitGroup
 	waitgrp.Add(1)
 	Worker_.Port = port
