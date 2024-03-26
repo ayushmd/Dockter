@@ -124,7 +124,7 @@ func (b *Builder) BuildRaw(
 	}
 	hostConfig := &container.HostConfig{
 		PortBindings: nat.PortMap{
-			nat.Port(runningPort): []nat.PortBinding{
+			nat.Port(fmt.Sprintf("%s/tcp", runningPort)): []nat.PortBinding{
 				{
 					HostIP:   "0.0.0.0",
 					HostPort: fmt.Sprintf("%d/tcp", hostport),

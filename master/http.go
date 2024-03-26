@@ -112,6 +112,7 @@ func DynamicRouter(w http.ResponseWriter, r *http.Request) {
 	if ok {
 		hostip := strings.Split(task.URL.Host, ":")[0]
 		deps := fmt.Sprintf("http://%s:%s", hostip, task.Runningport)
+		log.Printf("Redirecting %s to %s", r.Host, deps)
 		http.Redirect(w, r, deps, http.StatusMovedPermanently)
 	} else {
 		w.WriteHeader(http.StatusNotFound)

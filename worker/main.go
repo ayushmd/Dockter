@@ -54,7 +54,7 @@ func (w *Worker) AddTask(id, imageName, runningPort string) (string, error) {
 	strPort := fmt.Sprintf("%d", port)
 	fmt.Println(strPort)
 	portBindings := nat.PortMap{
-		nat.Port(runningPort): []nat.PortBinding{
+		nat.Port(fmt.Sprintf("%s/tcp", runningPort)): []nat.PortBinding{
 			{
 				HostIP:   "0.0.0.0",
 				HostPort: strPort,
