@@ -12,8 +12,6 @@ import (
 	"github.com/ayush18023/Load_balancer_Fyp/internal"
 	"github.com/ayush18023/Load_balancer_Fyp/internal/auth"
 	"github.com/ayush18023/Load_balancer_Fyp/rpc/masterrpc"
-	"github.com/docker/docker/api/types/container"
-	"github.com/docker/go-connections/nat"
 	"github.com/go-git/go-git/v5"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
@@ -122,18 +120,18 @@ func (b *Builder) BuildRaw(
 	if err != nil {
 		log.Fatal(err)
 	}
-	hostConfig := &container.HostConfig{
-		PortBindings: nat.PortMap{
-			nat.Port(fmt.Sprintf("%s/tcp", runningPort)): []nat.PortBinding{
-				{
-					HostIP:   "0.0.0.0",
-					HostPort: fmt.Sprintf("%d/tcp", hostport),
-				},
-			},
-		},
-		NetworkMode: "host",
-	}
-	containerID, err := doc.RunContainer(Name, Name, hostConfig)
+	// hostConfig := &container.HostConfig{
+	// 	PortBindings: nat.PortMap{
+	// 		nat.Port(fmt.Sprintf("%s/tcp", runningPort)): []nat.PortBinding{
+	// 			{
+	// 				HostIP:   "0.0.0.0",
+	// 				HostPort: fmt.Sprintf("%d/tcp", hostport),
+	// 			},
+	// 		},
+	// 	},
+	// 	NetworkMode: "host",
+	// }
+	containerID, err := doc.RunContainer(Name, Name, []string{fmt.Sprintf("%d:%s/tcp", hostport, runningPort)})
 	if err != nil {
 		log.Fatal(err)
 	}

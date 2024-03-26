@@ -18,6 +18,7 @@ import (
 	registery "github.com/docker/docker/api/types/registry"
 	"github.com/docker/docker/builder/remotecontext/urlutil"
 	"github.com/docker/docker/client"
+	"github.com/docker/go-connections/nat"
 	"github.com/go-git/go-git/v5"
 )
 
@@ -155,13 +156,22 @@ func (d *Dockter) CreateImage(imageName string, DockerfileCtx string, reader io.
 	}
 }
 
-func (d *Dockter) RunContainer(imageName string, containerName string, hostConfig *container.HostConfig) (string, error) {
+func (d *Dockter) RunContainer(imageName string, containerName string, ports []string) (string, error) {
+	expports, portBindings, err := nat.ParsePortSpecs(ports)
+	if err != nil {
+		log.Fatal("Error in ports")
+	}
+
 	cont, err := d.cli.ContainerCreate(
 		context.Background(),
 		&container.Config{
-			Image: imageName,
+			Image:        imageName,
+			ExposedPorts: expports,
 			//may require Cmd:
-		}, hostConfig, nil, nil,
+		},
+		&container.HostConfig{
+			PortBindings: portBindings,
+		}, nil, nil,
 		containerName,
 	)
 
