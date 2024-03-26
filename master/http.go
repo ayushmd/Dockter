@@ -110,7 +110,9 @@ func DynamicRouter(w http.ResponseWriter, r *http.Request) {
 	log.Println("Request to subdomain ", subdo)
 	task, ok := Master_.cacheDns.Get(subdo)
 	if ok {
-		http.Redirect(w, r, "http://"+task.URL.Host+r.URL.Path, http.StatusMovedPermanently)
+		hostip := strings.Split(task.URL.Host, ":")[0]
+		deps := fmt.Sprintf("http://%s:%s", hostip, task.Runningport)
+		http.Redirect(w, r, deps, http.StatusMovedPermanently)
 	} else {
 		w.WriteHeader(http.StatusNotFound)
 		fmt.Fprintf(w, "Page not found")
