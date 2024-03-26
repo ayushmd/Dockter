@@ -97,8 +97,8 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 	// } else {
 	// 	router.Run(w, r)
 	// }
-	log.Println(r.Method, r.Host)
-	if HasSubdomain(r.URL.Host) {
+	log.Println(r.Method, r.Host, r.URL.Host)
+	if HasSubdomain(r.Host) {
 		DynamicRouter(w, r)
 	} else {
 		router.Run(w, r)
