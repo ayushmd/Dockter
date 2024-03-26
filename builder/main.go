@@ -133,7 +133,7 @@ func (b *Builder) BuildRaw(
 		},
 		NetworkMode: "host",
 	}
-	containerID, err := doc.RunContainer(Name, hostConfig)
+	containerID, err := doc.RunContainer(Name, Name, hostConfig)
 	if err != nil {
 		log.Fatal(err)
 	}

@@ -63,6 +63,7 @@ func (w *Worker) AddTask(id, imageName, runningPort string) (string, error) {
 	}
 	containerID, err := doc.RunContainer(
 		imageName,
+		"",
 		&container.HostConfig{
 			NetworkMode:  "host",
 			PortBindings: portBindings,

@@ -155,14 +155,14 @@ func (d *Dockter) CreateImage(imageName string, DockerfileCtx string, reader io.
 	}
 }
 
-func (d *Dockter) RunContainer(imageName string, hostConfig *container.HostConfig) (string, error) {
+func (d *Dockter) RunContainer(imageName string, containerName string, hostConfig *container.HostConfig) (string, error) {
 	cont, err := d.cli.ContainerCreate(
 		context.Background(),
 		&container.Config{
 			Image: imageName,
 			//may require Cmd:
 		}, hostConfig, nil, nil,
-		imageName,
+		containerName,
 	)
 
 	if err != nil {
