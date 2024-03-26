@@ -106,7 +106,7 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 }
 
 func DynamicRouter(w http.ResponseWriter, r *http.Request) {
-	subdo := strings.Split(r.URL.Host, ".")[0]
+	subdo := strings.Split(r.Host, ".")[0]
 	log.Println("Request to subdomain ", subdo)
 	task, ok := Master_.cacheDns.Get(subdo)
 	if ok {
