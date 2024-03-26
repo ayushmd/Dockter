@@ -82,10 +82,10 @@ var router *Router = &Router{}
 
 func HasSubdomain(host string) bool {
 	splits := strings.Split(host, ".")
-	if len(splits) == 1 || len(splits) == 4 {
-		return false
+	if len(splits) == 3 {
+		return true
 	}
-	return true
+	return false
 }
 
 func Handler(w http.ResponseWriter, r *http.Request) {
@@ -97,6 +97,7 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 	// } else {
 	// 	router.Run(w, r)
 	// }
+	log.Println(r.Method, r.Host)
 	if HasSubdomain(r.URL.Host) {
 		DynamicRouter(w, r)
 	} else {

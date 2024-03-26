@@ -28,7 +28,7 @@ type Backend struct {
 	CpuUsage       float64 `json:"cpu"`
 	MemUsage       float64 `json:"mem"`
 	DiskUsage      float64 `json:"disk"`
-	// mux            sync.RWMutex
+	mux            sync.RWMutex
 	//Algo part
 }
 
@@ -41,13 +41,14 @@ type Task struct {
 }
 
 type TaskRawRequest struct {
-	Name       string            `json:"name"`
-	Gitlink    string            `json:"gitLink"`
-	Branch     string            `json:"branch"`
-	BuildCmd   string            `json:"buildCmd"`
-	StartCmd   string            `json:"startCmd"`
-	RuntimeEnv string            `json:"runtimeEnv"`
-	EnvVars    map[string]string `json:"envVars"`
+	Name        string            `json:"name"`
+	Gitlink     string            `json:"gitLink"`
+	Branch      string            `json:"branch"`
+	BuildCmd    string            `json:"buildCmd"`
+	StartCmd    string            `json:"startCmd"`
+	RuntimeEnv  string            `json:"runtimeEnv"`
+	RunningPort string            `json:"runningPort"`
+	EnvVars     map[string]string `json:"envVars"`
 } // BUILD DEPLOY
 
 type TaskFileRequest struct {
@@ -62,6 +63,18 @@ type TaskImageRequest struct {
 	DockerImage string `json:"dockerImage"`
 	RunningPort string `json:"runningPort"`
 } // DEPLOY
+
+func (b *Backend) AddConn() {
+	b.mux.Lock()
+	defer b.mux.Unlock()
+	b.CurrentConnect += 1
+}
+
+func (b *Backend) ResConn() {
+	b.mux.Lock()
+	defer b.mux.Unlock()
+	b.CurrentConnect -= 1
+}
 
 // type TaskConfig struct {
 // 	Name string `json:"name"`
@@ -240,26 +253,30 @@ func (m *Master) BuildRaw(message kafka.Message) {
 	if err != nil {
 		panic("Couldnt unmarshal")
 	}
+	backend := MasterPlanAlgo(m.ServerPool, "BUILDER")
 	conn, err := grpc.Dial(
-		MasterPlanAlgo(m.ServerPool, "BUILDER").URL.Host,
+		backend.URL.Host,
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 	)
 	if err != nil {
 		panic("Connection failed")
 	}
 	builder := builderrpc.NewBuilderServiceClient(conn)
+	backend.AddConn()
 	buildRawResponse, err := builder.BuildRaw(
 		context.Background(),
 		&builderrpc.BuildRawRequest{
-			Name:       configs.Name,
-			Gitlink:    configs.Gitlink,
-			Branch:     configs.Branch,
-			BuildCmd:   configs.BuildCmd,
-			StartCmd:   configs.StartCmd,
-			RuntimeEnv: configs.RuntimeEnv,
-			EnvVars:    configs.EnvVars,
+			Name:        configs.Name,
+			Gitlink:     configs.Gitlink,
+			Branch:      configs.Branch,
+			BuildCmd:    configs.BuildCmd,
+			StartCmd:    configs.StartCmd,
+			RuntimeEnv:  configs.RuntimeEnv,
+			RunningPort: configs.RunningPort,
+			EnvVars:     configs.EnvVars,
 		},
 	)
+	backend.ResConn()
 	if err != nil {
 		panic(err)
 	}
@@ -280,14 +297,16 @@ func (m *Master) BuildFile(message kafka.Message) {
 	if err != nil {
 		panic("Couldnt unmarshal")
 	}
+	backend := MasterPlanAlgo(m.ServerPool, "BUILDER")
 	conn, err := grpc.Dial(
-		MasterPlanAlgo(m.ServerPool, "BUILDER").URL.Host,
+		backend.URL.Host,
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 	)
 	if err != nil {
 		panic("Connection failed")
 	}
 	builder := builderrpc.NewBuilderServiceClient(conn)
+	backend.AddConn()
 	buildRawResponse, err := builder.BuildSpec(
 		context.Background(),
 		&builderrpc.BuildSpecRequest{
@@ -297,6 +316,7 @@ func (m *Master) BuildFile(message kafka.Message) {
 			EnvVars: configs.EnvVars,
 		},
 	)
+	backend.ResConn()
 	if err != nil {
 		panic("Couldnt marshal 3")
 	}
@@ -317,9 +337,9 @@ func (m *Master) Deploy(message kafka.Message) {
 	if err != nil {
 		panic("Couldnt unmarshal")
 	}
-	servUrl := MasterPlanAlgo(m.ServerPool, "WORKER").URL
+	backend := MasterPlanAlgo(m.ServerPool, "WORKER")
 	conn, err := grpc.Dial(
-		servUrl.Host,
+		backend.URL.Host,
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 	)
 	if err != nil {
@@ -327,6 +347,7 @@ func (m *Master) Deploy(message kafka.Message) {
 	}
 	fmt.Println("The recieved stuff ", configs.Name, configs.DockerImage, configs.RunningPort)
 	worker := workerrpc.NewWorkerServiceClient(conn)
+	backend.AddConn()
 	buildRawResponse, err := worker.AddTask(
 		context.Background(),
 		&workerrpc.Task{
@@ -335,12 +356,13 @@ func (m *Master) Deploy(message kafka.Message) {
 			RunningPort: configs.RunningPort,
 		},
 	)
+	backend.ResConn()
 	if err != nil {
 		panic(err)
 	}
 	m.cacheDns.Add(configs.Name, Task{
 		Subdomain:   configs.Name,
-		URL:         servUrl,
+		URL:         backend.URL,
 		Runningport: configs.RunningPort,
 		ImageName:   configs.DockerImage,
 		Hostport:    buildRawResponse.GetHostPort(),
