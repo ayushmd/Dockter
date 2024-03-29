@@ -2,6 +2,7 @@ package master
 
 import (
 	"context"
+	"database/sql"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -97,6 +98,7 @@ func (b *Backend) ResConn() {
 type Master struct {
 	kwriter    *internal.KafkaWriter
 	ServerPool []*Backend
+	dbDns      *sql.DB
 	cacheDns   *lru.Cache[string, Task]
 }
 

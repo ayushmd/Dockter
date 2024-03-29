@@ -111,7 +111,7 @@ func DynamicRouter(w http.ResponseWriter, r *http.Request) {
 	task, ok := Master_.cacheDns.Get(subdo)
 	if ok {
 		hostip := strings.Split(task.URL.Host, ":")[0]
-		deps := fmt.Sprintf("http://%s:%s", hostip, task.Runningport)
+		deps := fmt.Sprintf("http://%s:%s", hostip, task.Hostport)
 		log.Printf("Redirecting %s to %s", r.Host, deps)
 		http.Redirect(w, r, deps, http.StatusMovedPermanently)
 	} else {

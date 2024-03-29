@@ -10,6 +10,7 @@ import (
 
 	"github.com/ayush18023/Load_balancer_Fyp/internal"
 	"github.com/ayush18023/Load_balancer_Fyp/internal/auth"
+	"github.com/ayush18023/Load_balancer_Fyp/internal/sqlite"
 	lru "github.com/hashicorp/golang-lru/v2"
 	"google.golang.org/grpc"
 )
@@ -31,6 +32,7 @@ func NewMasterServer(port int) {
 	Master_.kwriter = &internal.KafkaWriter{
 		Writer: internal.KafkaUPAuthWriter("build"),
 	}
+	Master_.dbDns = sqlite.CreateConn()
 	Master_.cacheDns = cache
 	var waitgrp sync.WaitGroup
 	lis, err := net.Listen("tcp", fmt.Sprintf(":%d", port))
