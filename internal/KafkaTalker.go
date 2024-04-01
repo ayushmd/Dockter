@@ -74,7 +74,7 @@ func (k *KafkaReader) ReaderServer(
 	onError func(),
 	concurrentLimit int64,
 ) {
-	fmt.Println(concurrentLimit)
+	// fmt.Println(concurrentLimit)
 	var counter int64 = int64(0)
 	var mu sync.Mutex // Mutex for synchronizing access to counter
 

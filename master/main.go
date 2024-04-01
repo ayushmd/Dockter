@@ -177,7 +177,7 @@ func (m *Master) HasJoined(peerurl string) int {
 }
 func (m *Master) Join(peerurl, peerState string, CpuUsage, MemUsage, DiskUsage float64) {
 	if i := m.HasJoined(peerurl); i == -1 {
-		fmt.Println("This is called by ", peerurl)
+		fmt.Printf("%s(%s) joined\n", peerState, peerurl)
 		urlparsed := url.URL{
 			Host: peerurl,
 		}

@@ -71,8 +71,8 @@ func main() {
 	flag.StringVar(&join, "join", "", "Join a master")
 	flag.BoolVar(&generateToken, "generatetoken", false, "Gives the token to join master")
 	flag.Parse()
-	fmt.Println("The port is: ", Port)
-	fmt.Println("The state is: ", State)
+	// fmt.Println("The port is: ", Port)
+	// fmt.Println("The state is: ", State)
 	if !generateToken {
 		var waitgrp sync.WaitGroup
 		waitgrp.Add(1)
@@ -86,7 +86,7 @@ func main() {
 			if join != "" {
 				addr = auth.ParseAccessToken(join).Address
 			}
-			fmt.Println(addr)
+			// fmt.Println(addr)
 			if State == "WORKER" {
 				go func() {
 					defer waitgrp.Done()
@@ -121,6 +121,7 @@ func main() {
 		if err != nil {
 			log.Fatal("error in genrating jwt")
 		}
+		fmt.Println("The Generated AuthToken:")
 		fmt.Println(authToken)
 	}
 	// if len(serverList) == 0 {
