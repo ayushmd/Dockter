@@ -116,6 +116,6 @@ func (w *Worker) JoinMaster(masterurl string) {
 			State: servInPool.State,
 		})
 	}
-	fmt.Printf("Joined Master(%s)\n", masterurl)
+	fmt.Printf("Joined Master Server(%s)\n", masterurl)
 	// do get response and hydrate Serverpool
 }

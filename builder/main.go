@@ -151,13 +151,13 @@ func (w *Builder) JoinMaster(masterurl string) {
 		masterurl,
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 	)
-	fmt.Println("here is executed")
+	// fmt.Println("here is executed")
 	if err != nil {
 		panic("Connection failed")
 	}
 	master := masterrpc.NewMasterServiceClient(conn)
 	myurl := fmt.Sprintf(":%d", w.Port)
-	fmt.Println("Till here ", myurl)
+	// fmt.Println("Till here ", myurl)
 	CpuUsage, MemUsage, DiskUsage, err := internal.HealthMetrics()
 	if err != nil {
 		panic("Health")
@@ -175,5 +175,6 @@ func (w *Builder) JoinMaster(masterurl string) {
 	if err != nil {
 		panic("Join error")
 	}
+	fmt.Printf("Joined Master Server(%s)\n", masterurl)
 	// do get response and hydrate Serverpool
 }
