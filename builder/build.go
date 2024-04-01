@@ -34,7 +34,7 @@ func CreateImage(imageName string, path string) {
 	}
 	err := cmd.Run()
 	if err != nil {
-		log.Fatal("Error in creating image")
+		log.Fatal("Error in creating image ", err)
 	}
 }
 
