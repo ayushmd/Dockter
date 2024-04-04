@@ -36,14 +36,14 @@ type Worker struct {
 
 var Worker_ *Worker = &Worker{}
 
-func (w *Worker) AddTask(id, imageName, runningPort string) (string, error) {
+func (w *Worker) AddTask(id, imageName, runningPort string) (string, string, error) {
 	// repoimageName := internal.GetKey("DOCKER_HUB_REPO_NAME") + imageName
 	doc := internal.Dockter{}
 	doc.Init()
 	defer doc.Close()
 	err := doc.PullFromRegistery(imageName)
 	if err != nil {
-		return "", err
+		return "", "", err
 	}
 	port, err := internal.GetFreePort()
 	if err != nil {
@@ -58,7 +58,7 @@ func (w *Worker) AddTask(id, imageName, runningPort string) (string, error) {
 	)
 	// builder.RunContainer(imageName, strPort, runningPort)
 	if err != nil {
-		return "", err
+		return "", "", err
 	}
 	w.cacheDns.Add(id, LocalTask{
 		Subdomain:   id,
@@ -67,7 +67,7 @@ func (w *Worker) AddTask(id, imageName, runningPort string) (string, error) {
 		Runningport: runningPort,
 		Hostport:    strPort,
 	})
-	return strPort, nil
+	return strPort, containerID, nil
 }
 
 func (w *Worker) JoinMaster(masterurl string) {

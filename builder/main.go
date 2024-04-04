@@ -43,7 +43,11 @@ func (b *Builder) GetWorkdir() string {
 func (b *Builder) GetEnvVariables(EnvVars map[string]string) string {
 	variables := ""
 	for key, value := range EnvVars {
-		variables += fmt.Sprintf("ENV %s=%s", key, value) + "\n"
+		var envval string = value
+		if strings.Contains(value, " ") && string(value[0]) != "'" && string(value[0]) != `"` {
+			envval = fmt.Sprintf("'%s'", value)
+		}
+		variables += fmt.Sprintf("ENV %s=%s", key, envval) + "\n"
 	}
 	return variables
 }

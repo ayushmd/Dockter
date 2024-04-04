@@ -39,6 +39,7 @@ type Task struct {
 	Hostport    string
 	Runningport string
 	ImageName   string
+	ContainerID string
 }
 
 type TaskRawRequest struct {
@@ -107,6 +108,21 @@ var Master_ *Master = &Master{}
 var kacp = keepalive.ClientParameters{
 	Timeout:             2 * time.Second, // wait 1 second for ping ack before considering the connection dead
 	PermitWithoutStream: true,            // send pings even without active streams
+}
+
+func (m *Master) AddDnsRecord(task Task) error {
+	query := fmt.Sprintf(`INSERT INTO dns 
+	(Subdomain, HostIp, HostPort, RunningPort, ImageName, ContainerID)
+	VALUES 
+	(%s,%s,%s,%s,%s,%s)
+	`, task.Subdomain, task.URL.Host, task.Hostport, task.Runningport, task.ImageName, task.ContainerID)
+	_, err := m.dbDns.Exec(query)
+	return err
+}
+
+func (m *Master) GetDnsRecord(id string) *sql.Row {
+	row := m.dbDns.QueryRow("SELECT * FROM dns WHERE Subdomain=?", id)
+	return row
 }
 
 func (m *Master) PoolServ(waitgrp *sync.WaitGroup, serv *Backend) {
@@ -362,13 +378,20 @@ func (m *Master) Deploy(message kafka.Message) {
 	if err != nil {
 		panic(err)
 	}
-	m.cacheDns.Add(configs.Name, Task{
+	task := Task{
 		Subdomain:   configs.Name,
 		URL:         backend.URL,
 		Runningport: configs.RunningPort,
 		ImageName:   configs.DockerImage,
 		Hostport:    buildRawResponse.GetHostPort(),
-	})
+		ContainerID: buildRawResponse.GetContainerID(),
+	}
+	if m.dbDns != nil {
+		err = m.AddDnsRecord(task)
+		if err == nil {
+			m.cacheDns.Add(configs.Name, task)
+		}
+	}
 }
 
 func (m *Master) KafkaHandler(message kafka.Message) {

@@ -43,7 +43,7 @@ func (w *WorkerServer) HealthMetrics(ctx context.Context, in *emptypb.Empty) (*w
 }
 
 func (w *WorkerServer) AddTask(ctx context.Context, in *workerrpc.Task) (*workerrpc.AddTaskResponse, error) {
-	port, err := Worker_.AddTask(
+	port, containerID, err := Worker_.AddTask(
 		in.GetName(),
 		in.GetImageName(),
 		in.GetRunningPort(),
@@ -52,7 +52,8 @@ func (w *WorkerServer) AddTask(ctx context.Context, in *workerrpc.Task) (*worker
 		return &workerrpc.AddTaskResponse{}, err
 	}
 	return &workerrpc.AddTaskResponse{
-		HostPort: port,
+		HostPort:    port,
+		ContainerID: containerID,
 	}, nil
 }
 

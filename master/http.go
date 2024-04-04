@@ -109,9 +109,28 @@ func DynamicRouter(w http.ResponseWriter, r *http.Request) {
 	subdo := strings.Split(r.Host, ".")[0]
 	log.Println("Request to subdomain ", subdo)
 	task, ok := Master_.cacheDns.Get(subdo)
+	var Hostip string = ""
+	var Hostport string = ""
 	if ok {
-		hostip := strings.Split(task.URL.Host, ":")[0]
-		deps := fmt.Sprintf("http://%s:%s", hostip, task.Hostport)
+		Hostip = strings.Split(task.URL.Host, ":")[0]
+		Hostport = task.Hostport
+
+	} else if Master_.dbDns != nil {
+		row := Master_.GetDnsRecord(subdo)
+		var Subdomain string
+		var HostIp string
+		var HostPort string
+		var RunningPort string
+		var ImageName string
+		var ContainerID string
+		err := row.Scan(&Subdomain, &HostIp, &HostPort, &RunningPort, &ImageName, &ContainerID)
+		if err == nil {
+			Hostip = HostIp
+			Hostport = HostPort
+		}
+	}
+	if Hostip != "" && Hostport != "" {
+		deps := fmt.Sprintf("http://%s:%s", Hostip, Hostport)
 		log.Printf("Redirecting %s to %s", r.Host, deps)
 		http.Redirect(w, r, deps, http.StatusMovedPermanently)
 	} else {

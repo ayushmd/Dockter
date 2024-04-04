@@ -21,24 +21,24 @@ func exists(path string) bool {
 	return false
 }
 
-func CreateConn() *sql.DB {
+func CreateConn() (*sql.DB, error) {
 	pwd, err := os.Getwd()
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
 	dbDirPath := filepath.Join(pwd, "db")
 	if !exists(dbDirPath) {
 		err = os.Mkdir("db", os.ModePerm)
 		if err != nil {
-			panic(err)
+			return nil, err
 		}
 	}
 	db, err := sql.Open("sqlite3", filepath.Join(dbDirPath, "dns.db"))
-	_, err = db.Exec("CREATE TABLE IF NOT EXISTS dns (Subdomain TEXT PRIMARY KEY, HostIp TEXT, HostPort string, RunningPort, ImageName TEXT, ContainerID string)")
+	_, err = db.Exec("CREATE TABLE IF NOT EXISTS dns (Subdomain TEXT PRIMARY KEY, HostIp TEXT, HostPort TEXT, RunningPort TEXT, ImageName TEXT, ContainerID TEXT)")
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
-	return db
+	return db, nil
 }
 
 // Subdomain   string //a unique id

@@ -25,7 +25,8 @@ message Task {
 }
 
 message AddTaskResponse {
-    string hostPort = 2;
+    string ContainerID = 1;
+    string HostPort = 2;
 }
 
 message TerminateTaskRequest{
