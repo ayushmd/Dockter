@@ -29,9 +29,11 @@ func main() {
 	// builder.CreateImage("ayush", "ayush")
 	// builder.BuildContainer("ayush")
 	// fmt.Println(builder.FindPort("ayush"))
-	// doc := internal.Dockter{}
-	// doc.Init()
-	// defer doc.Close()
+	doc := internal.Dockter{}
+	doc.Init()
+	defer doc.Close()
+	doc.BuildNewImage()
+	fmt.Println("Builded")
 	// outputlines := doc.ExecuteCommand("ayush", []string{"netstat", "-tuln"})
 	// port := internal.FindFirstPort(outputlines)
 	// fmt.Println(port)

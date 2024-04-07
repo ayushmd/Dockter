@@ -12,6 +12,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/docker/docker/pkg/archive"
 	"github.com/ayush18023/Load_balancer_Fyp/internal/auth"
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
@@ -62,6 +63,36 @@ func (d *Dockter) Init() {
 
 func (d *Dockter) Close() {
 	d.cli.Close()
+}
+
+func (d *Dockter) BuildNewImage(){
+	imageName := "imagename"
+    	ctx := context.Background()
+    	dockerBuildContext, err := archive.TarWithOptions("repos/deploy", &archive.TarOptions{})
+    	if err != nil {
+        	panic(err)
+    	}
+    	defer dockerBuildContext.Close()
+
+    	buildOptions := types.ImageBuildOptions{
+        	Tags: []string{imageName + ":latest"},
+        	Remove: true,
+        	ForceRemove: true,
+       	 	NoCache: true,
+        	Dockerfile: "Dockerfile",
+        	Context: dockerBuildContext,
+    	}
+	imageBuildResponse, err := d.cli.ImageBuild(ctx, dockerBuildContext, buildOptions)
+    	if err != nil {
+        	panic(err)
+    	}
+    	defer imageBuildResponse.Body.Close()
+
+   	 // Print the build output
+   	 _, err = io.Copy(os.Stdout, imageBuildResponse.Body)
+    	if err != nil {
+        	panic(err)
+    	}
 }
 
 func (d *Dockter) BuildImage(options BuildOptions) {
