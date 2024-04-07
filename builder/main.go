@@ -116,7 +116,7 @@ func (b *Builder) BuildRaw(
 		fmt.Printf("Failed to write Dockerfile: %v\n", err)
 		return "", err
 	}
-	CreateImage(Name, filpth)
+	// CreateImage(Name, filpth)
 	doc := internal.Dockter{}
 	doc.Init()
 	defer doc.Close()
@@ -124,6 +124,7 @@ func (b *Builder) BuildRaw(
 	if err != nil {
 		log.Fatal(err)
 	}
+	doc.BuildNewImage(Name, filpth)
 	// hostConfig := &container.HostConfig{
 	// 	PortBindings: nat.PortMap{
 	// 		nat.Port(fmt.Sprintf("%s/tcp", runningPort)): []nat.PortBinding{
