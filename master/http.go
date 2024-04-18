@@ -82,10 +82,7 @@ var router *Router = &Router{}
 
 func HasSubdomain(host string) bool {
 	splits := strings.Split(host, ".")
-	if len(splits) == 3 {
-		return true
-	}
-	return false
+	return len(splits) == 3
 }
 
 func Handler(w http.ResponseWriter, r *http.Request) {

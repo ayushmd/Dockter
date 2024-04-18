@@ -186,6 +186,14 @@ func (d *Dockter) CreateImage(imageName string, DockerfileCtx string, reader io.
 	}
 }
 
+func (d *Dockter) ListContainers() []types.Container {
+	containers, err := d.cli.ContainerList(context.Background(), container.ListOptions{})
+	if err != nil {
+		panic(err)
+	}
+	return containers
+}
+
 func (d *Dockter) RunContainer(imageName string, containerName string, ports []string) (string, error) {
 	expports, portBindings, err := nat.ParsePortSpecs(ports)
 	if err != nil {
@@ -327,6 +335,10 @@ func (d *Dockter) PullFromRegistery(repoimageName string) error {
 	io.Copy(os.Stdout, out)
 	return nil
 }
+
+// func (d *Dockter) Inspect() {
+// 	containerjson, err := d.cli.ContainerInspect(context.Background(), "")
+// }
 
 func FindFirstPort(outputLines []string) string {
 	var runningPorts []string

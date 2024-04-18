@@ -24,6 +24,24 @@ message Task {
     string RunningPort = 3;
 }
 
+message Port {
+    string IP = 1;
+    int32 RunningPort = 2;
+    int32 HostPort = 3;
+    string Type = 4;
+}
+
+message RunningTask {
+	string ContainerID = 1;
+	string ImageName = 2;  
+	repeated Port Ports = 3;
+    string State =4;
+}
+
+message RunningTasks {
+    repeated RunningTask containers = 1;
+}
+
 message AddTaskResponse {
     string ContainerID = 1;
     string HostPort = 2;
@@ -47,5 +65,5 @@ service WorkerService {
     rpc HealthMetrics(google.protobuf.Empty) returns (HealthMetricResponse) {}
     rpc AddTask(Task) returns (AddTaskResponse) {}
     rpc TerminateTask(TerminateTaskRequest) returns (TerminateTaskResponse) {}
-    rpc GetTasks(google.protobuf.Empty) returns (Tasks) {}
+    rpc GetTasks(google.protobuf.Empty) returns (RunningTasks) {}
 }

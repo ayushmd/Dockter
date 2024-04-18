@@ -37,7 +37,7 @@ type WorkerServiceClient interface {
 	HealthMetrics(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*HealthMetricResponse, error)
 	AddTask(ctx context.Context, in *Task, opts ...grpc.CallOption) (*AddTaskResponse, error)
 	TerminateTask(ctx context.Context, in *TerminateTaskRequest, opts ...grpc.CallOption) (*TerminateTaskResponse, error)
-	GetTasks(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*Tasks, error)
+	GetTasks(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*RunningTasks, error)
 }
 
 type workerServiceClient struct {
@@ -93,8 +93,8 @@ func (c *workerServiceClient) TerminateTask(ctx context.Context, in *TerminateTa
 	return out, nil
 }
 
-func (c *workerServiceClient) GetTasks(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*Tasks, error) {
-	out := new(Tasks)
+func (c *workerServiceClient) GetTasks(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*RunningTasks, error) {
+	out := new(RunningTasks)
 	err := c.cc.Invoke(ctx, WorkerService_GetTasks_FullMethodName, in, out, opts...)
 	if err != nil {
 		return nil, err
@@ -111,7 +111,7 @@ type WorkerServiceServer interface {
 	HealthMetrics(context.Context, *emptypb.Empty) (*HealthMetricResponse, error)
 	AddTask(context.Context, *Task) (*AddTaskResponse, error)
 	TerminateTask(context.Context, *TerminateTaskRequest) (*TerminateTaskResponse, error)
-	GetTasks(context.Context, *emptypb.Empty) (*Tasks, error)
+	GetTasks(context.Context, *emptypb.Empty) (*RunningTasks, error)
 	mustEmbedUnimplementedWorkerServiceServer()
 }
 
@@ -134,7 +134,7 @@ func (UnimplementedWorkerServiceServer) AddTask(context.Context, *Task) (*AddTas
 func (UnimplementedWorkerServiceServer) TerminateTask(context.Context, *TerminateTaskRequest) (*TerminateTaskResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method TerminateTask not implemented")
 }
-func (UnimplementedWorkerServiceServer) GetTasks(context.Context, *emptypb.Empty) (*Tasks, error) {
+func (UnimplementedWorkerServiceServer) GetTasks(context.Context, *emptypb.Empty) (*RunningTasks, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetTasks not implemented")
 }
 func (UnimplementedWorkerServiceServer) mustEmbedUnimplementedWorkerServiceServer() {}

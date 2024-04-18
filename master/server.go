@@ -32,7 +32,13 @@ func NewMasterServer(port int) {
 	Master_.kwriter = &internal.KafkaWriter{
 		Writer: internal.KafkaUPAuthWriter("build"),
 	}
-	Master_.dbDns, _ = sqlite.CreateConn()
+	Master_.dnsStatus = RUNNING
+	Master_.dbDns, err = sqlite.CreateConn()
+	if err != nil {
+		Master_.dnsStatus = EXITED
+	} else {
+		Master_.dnsStatus = STARTED
+	}
 	Master_.cacheDns = cache
 	var waitgrp sync.WaitGroup
 	lis, err := net.Listen("tcp", fmt.Sprintf(":%d", port))

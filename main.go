@@ -9,6 +9,7 @@ import (
 	"github.com/ayush18023/Load_balancer_Fyp/builder"
 	"github.com/ayush18023/Load_balancer_Fyp/internal"
 	"github.com/ayush18023/Load_balancer_Fyp/internal/auth"
+	"github.com/ayush18023/Load_balancer_Fyp/internal/iostream"
 	"github.com/ayush18023/Load_balancer_Fyp/master"
 	"github.com/ayush18023/Load_balancer_Fyp/worker"
 	"github.com/joho/godotenv"
@@ -43,9 +44,10 @@ func main() {
 	// BuildCmd := "npm i"
 	// RunCmd := "npm start"
 	// RuntimeEnv := "Node"
-	// doc := internal.Dockter{}
-	// doc.Init()
-	// defer doc.Close()
+	doc := internal.Dockter{}
+	doc.Init()
+	defer doc.Close()
+	iostream.PrintObj(doc.ListContainers())
 	// doc.BuildImage(internal.BuildOptions{
 	// 	Context:              GitLink,
 	// 	Label:                Name,

@@ -42,6 +42,31 @@ func (w *WorkerServer) HealthMetrics(ctx context.Context, in *emptypb.Empty) (*w
 	}, nil
 }
 
+func (w *WorkerServer) GetTasks(ctx context.Context, in *emptypb.Empty) (*workerrpc.RunningTasks, error) {
+	containers := Worker_.GetTasks()
+	reqContainers := []*workerrpc.RunningTask{}
+	for _, container := range containers {
+		var respPorts []*workerrpc.Port
+		for _, port := range container.Ports {
+			respPorts = append(respPorts, &workerrpc.Port{
+				IP:          port.IP,
+				RunningPort: int32(port.PrivatePort),
+				HostPort:    int32(port.PublicPort),
+				Type:        port.Type,
+			})
+		}
+		reqContainers = append(reqContainers, &workerrpc.RunningTask{
+			ContainerID: container.ID,
+			ImageName:   container.Image,
+			Ports:       respPorts,
+			State:       container.State,
+		})
+	}
+	return &workerrpc.RunningTasks{
+		Containers: reqContainers,
+	}, nil
+}
+
 func (w *WorkerServer) AddTask(ctx context.Context, in *workerrpc.Task) (*workerrpc.AddTaskResponse, error) {
 	port, containerID, err := Worker_.AddTask(
 		in.GetName(),

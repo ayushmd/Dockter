@@ -96,9 +96,18 @@ func (b *Backend) ResConn() {
 // 	RunningPort    string `json:"runningPort"`
 // }
 
+type status int
+
+const (
+	RUNNING status = iota
+	STARTED
+	EXITED
+)
+
 type Master struct {
 	kwriter    *internal.KafkaWriter
 	ServerPool []*Backend
+	dnsStatus  status
 	dbDns      *sql.DB
 	cacheDns   *lru.Cache[string, Task]
 }
@@ -191,6 +200,21 @@ func (m *Master) HasJoined(peerurl string) int {
 	}
 	return -1
 }
+
+func Handshake(peerurl string) {
+	for retries := 0; retries < 0; retries++ {
+		if Master_.dnsStatus != STARTED {
+			err := HandshakePolicy(CLEAR_INACTIVE, peerurl)
+			if err != nil {
+				fmt.Print(err)
+			}
+			break
+		} else if Master_.dnsStatus == RUNNING {
+			time.Sleep(2 * time.Second)
+		}
+	}
+}
+
 func (m *Master) Join(peerurl, peerState string, CpuUsage, MemUsage, DiskUsage float64) {
 	if i := m.HasJoined(peerurl); i == -1 {
 		fmt.Printf("%s(%s) joined\n", peerState, peerurl)
@@ -209,6 +233,7 @@ func (m *Master) Join(peerurl, peerState string, CpuUsage, MemUsage, DiskUsage f
 	} else {
 		m.ServerPool[i].IsAlive = true
 	}
+	go Handshake(peerurl)
 }
 
 func (m *Master) GetServerPoolHandler() ([]byte, error) {
@@ -224,45 +249,6 @@ func (m *Master) AddTask(request string, marshTask []byte) {
 		[]byte(request),
 		marshTask,
 	)
-	// if tconfig.HasDockerImage {
-	// 	newtask := TaskConfig{
-	// 		Name:        tconfig.Name,
-	// 		DockerImage: tconfig.DockerImage,
-	// 		RunningPort: tconfig.RunningPort,
-	// 	}
-	// 	enc, _ := json.Marshal(newtask)
-	// 	m.KafkaManager.Write(
-	// 		[]byte("DEPLOY"),
-	// 		enc,
-	// 	)
-	// } else {
-	// 	if tconfig.HasDockerFile {
-	// 		buildtask := TaskConfig{
-	// 			Gitlink: tconfig.Gitlink,
-	// 			Branch:  tconfig.Branch,
-	// 			EnvVars: tconfig.EnvVars,
-	// 		}
-	// 		enc, _ := json.Marshal(buildtask)
-	// 		m.KafkaManager.Write(
-	// 			[]byte("BUILDFILE"),
-	// 			enc,
-	// 		)
-	// 	} else {
-	// 		buildtask := TaskConfig{
-	// 			Gitlink:    tconfig.Gitlink,
-	// 			Branch:     tconfig.Branch,
-	// 			BuildCmd:   tconfig.BuildCmd,
-	// 			StartCmd:   tconfig.StartCmd,
-	// 			RuntimeEnv: tconfig.RuntimeEnv,
-	// 			EnvVars:    tconfig.EnvVars,
-	// 		}
-	// 		enc, _ := json.Marshal(buildtask)
-	// 		m.KafkaManager.Write(
-	// 			[]byte("BUILDRAW"),
-	// 			enc,
-	// 		)
-	// 	}
-	// }
 }
 
 func (m *Master) BuildRaw(message kafka.Message) {
@@ -388,10 +374,8 @@ func (m *Master) Deploy(message kafka.Message) {
 	}
 	if m.dbDns != nil {
 		err = m.AddDnsRecord(task)
-		if err == nil {
-			m.cacheDns.Add(configs.Name, task)
-		}
 	}
+	m.cacheDns.Add(configs.Name, task)
 }
 
 func (m *Master) KafkaHandler(message kafka.Message) {
