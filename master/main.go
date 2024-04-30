@@ -144,7 +144,7 @@ func (m *Master) RetryDed(serv *Backend) {
 }
 
 func (m *Master) PoolServ(serv *Backend) error {
-	fmt.Println("Pooling server ", serv.URL.Host)
+	log.Println("Pooling server ", serv.URL.Host)
 	conn, err := grpc.Dial(
 		serv.URL.Host,
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
@@ -206,7 +206,7 @@ func (m *Master) PoolServ(serv *Backend) error {
 }
 
 func (m *Master) Pool() {
-	fmt.Println("Pooling started")
+	log.Println("Pooling started")
 	var waitgrp *sync.WaitGroup = &sync.WaitGroup{}
 	for _, serv := range m.ServerPool {
 		if serv.IsAlive {
@@ -248,7 +248,7 @@ func Handshake(peerurl string) {
 
 func (m *Master) Join(peerurl, peerState string, HealthStats internal.ContainerBasedMetric) {
 	if i := m.HasJoined(peerurl); i == -1 {
-		fmt.Printf("%s(%s) joined\n", peerState, peerurl)
+		log.Printf("%s(%s) joined\n", peerState, peerurl)
 		urlparsed := url.URL{
 			Host: peerurl,
 		}
@@ -274,6 +274,7 @@ func (m *Master) GetServerPoolHandler() ([]byte, error) {
 }
 
 func (m *Master) AddTask(request string, marshTask []byte) {
+	log.Println(request, string(marshTask))
 	m.kwriter.Write(
 		[]byte(request),
 		marshTask,
@@ -375,7 +376,11 @@ func (m *Master) Deploy(message kafka.Message) {
 	if err != nil {
 		panic("Couldnt unmarshal")
 	}
-	backend := MasterPlanAlgo(m.ServerPool, "WORKER")
+	backend := MasterPlanAlgo2(m.ServerPool, "WORKER", internal.ContainerBasedMetric{
+		CpuPercent: configs.BasedMetric.CpuPercent,
+		MemUsage:   configs.BasedMetric.MemUsage,
+		DiskUsage:  configs.BasedMetric.DiskUsage,
+	})
 	conn, err := grpc.Dial(
 		backend.URL.Host,
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
@@ -383,7 +388,6 @@ func (m *Master) Deploy(message kafka.Message) {
 	if err != nil {
 		panic("Connection failed")
 	}
-	fmt.Println("The recieved stuff ", configs.Name, configs.DockerImage, configs.RunningPort)
 	worker := workerrpc.NewWorkerServiceClient(conn)
 	backend.AddConn()
 	buildRawResponse, err := worker.AddTask(

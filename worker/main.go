@@ -3,6 +3,7 @@ package worker
 import (
 	"context"
 	"fmt"
+	"log"
 	"net/url"
 
 	"github.com/ayush18023/Load_balancer_Fyp/internal"
@@ -39,6 +40,7 @@ var Worker_ *Worker = &Worker{}
 
 func (w *Worker) AddTask(id, imageName, runningPort string) (string, string, error) {
 	// repoimageName := internal.GetKey("DOCKER_HUB_REPO_NAME") + imageName
+	log.Println("Adding Task ", id, imageName, runningPort)
 	doc := internal.Dockter{}
 	doc.Init()
 	defer doc.Close()
@@ -135,6 +137,6 @@ func (w *Worker) JoinMaster(masterurl string) {
 			State: servInPool.State,
 		})
 	}
-	fmt.Printf("Joined Master Server(%s)\n", masterurl)
+	log.Printf("Joined Master Server(%s)\n", masterurl)
 	// do get response and hydrate Serverpool
 }

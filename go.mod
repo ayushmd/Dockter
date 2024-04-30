@@ -14,7 +14,7 @@ require (
 	google.golang.org/protobuf v1.33.0
 )
 
-require github.com/mattn/go-sqlite3 v1.14.22 // indirect
+require github.com/mattn/go-sqlite3 v1.14.22
 
 require (
 	dario.cat/mergo v1.0.0 // indirect
@@ -35,7 +35,6 @@ require (
 	github.com/go-ole/go-ole v1.2.6 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/golang-jwt/jwt v3.2.2+incompatible
-	github.com/golang-jwt/jwt/v5 v5.2.1 // indirect
 	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da // indirect
 	github.com/golang/protobuf v1.5.3 // indirect
 	github.com/jbenet/go-context v0.0.0-20150711004518-d14ea06fba99 // indirect
