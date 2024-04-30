@@ -24,19 +24,24 @@ func (w *BuilderServer) WhoAmI(ctx context.Context, in *emptypb.Empty) (*builder
 }
 
 func (w *BuilderServer) BuildHealthMetrics(ctx context.Context, in *emptypb.Empty) (*builderrpc.BuildHealthResponse, error) {
-	cpuUsage, memUsage, diskUsage, err := internal.HealthMetrics()
+	// cpuUsage, memUsage, diskUsage, err := internal.HealthMetrics()
+	basedHealth, err := internal.HealthMetricsBased()
 	if err != nil {
 		return &builderrpc.BuildHealthResponse{}, err
 	}
 	return &builderrpc.BuildHealthResponse{
-		CpuUsage:  float32(cpuUsage),
-		MemUsage:  float32(memUsage),
-		DiskUsage: float32(diskUsage),
+		CpuPercent:       basedHealth.CpuPercent,
+		MemUsage:         basedHealth.MemUsage,
+		TotalMem:         basedHealth.TotalMem,
+		MemUsedPercent:   float32(basedHealth.MemUsedPercent),
+		DiskUsage:        basedHealth.DiskUsage,
+		TotalDisk:        basedHealth.TotalDisk,
+		DiskUsagePercent: float32(basedHealth.DiskUsagePercent),
 	}, nil
 }
 
 func (w *BuilderServer) BuildRaw(ctx context.Context, in *builderrpc.BuildRawRequest) (*builderrpc.BuildRawResponse, error) {
-	image, err := Builder_.BuildRaw(
+	image, basedMetrics, err := Builder_.BuildRaw(
 		in.GetName(),
 		in.GetGitlink(),
 		in.GetBranch(),
@@ -54,6 +59,11 @@ func (w *BuilderServer) BuildRaw(ctx context.Context, in *builderrpc.BuildRawReq
 		Name:        in.GetName(),
 		ImageName:   image,
 		RunningPort: in.GetRunningPort(),
+		BasedMetrics: &builderrpc.ContainerStats{
+			CpuPercent: basedMetrics.CpuPercent,
+			MemUsage:   basedMetrics.MemUsage,
+			DiskUsage:  basedMetrics.DiskUsage,
+		},
 	}, nil
 }
 

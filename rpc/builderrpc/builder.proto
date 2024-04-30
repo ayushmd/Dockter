@@ -8,6 +8,12 @@ message BWhoAmIResponse{
     string State = 1;
 }
 
+message ContainerStats{
+    int64 CpuPercent = 1;
+    int32 MemUsage = 2;
+    int64 DiskUsage = 3;
+}
+
 message BuildRawRequest{
     string Name = 1;
     string Gitlink = 2;
@@ -24,6 +30,7 @@ message BuildRawResponse{
     string Name = 2;
     string ImageName = 3;
     string RunningPort = 4;
+    ContainerStats BasedMetrics = 5;
 }
 
 message BuildSpecRequest{
@@ -41,9 +48,13 @@ message BuildSpecResponse{
 }
 
 message BuildHealthResponse{
-    float CpuUsage  = 1;
-    float MemUsage  = 2;
-    float DiskUsage = 3;
+    int64 CpuPercent  = 1;
+    int32 MemUsage  = 2;
+    int32 TotalMem  = 3;
+    float MemUsedPercent  = 4;
+    int64 DiskUsage = 5;
+    int64 TotalDisk = 6;
+    float DiskUsagePercent = 7;
 }
 
 service BuilderService {

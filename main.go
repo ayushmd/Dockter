@@ -9,7 +9,6 @@ import (
 	"github.com/ayush18023/Load_balancer_Fyp/builder"
 	"github.com/ayush18023/Load_balancer_Fyp/internal"
 	"github.com/ayush18023/Load_balancer_Fyp/internal/auth"
-	"github.com/ayush18023/Load_balancer_Fyp/internal/iostream"
 	"github.com/ayush18023/Load_balancer_Fyp/master"
 	"github.com/ayush18023/Load_balancer_Fyp/worker"
 	"github.com/joho/godotenv"
@@ -47,7 +46,12 @@ func main() {
 	doc := internal.Dockter{}
 	doc.Init()
 	defer doc.Close()
-	iostream.PrintObj(doc.ListContainers())
+	// fmt.Println(doc.ListContainers())
+	containerJSon, _ := doc.ContainerMetrics("962bde4d3c8f25a9b4efdcbce351768dfda657cfd93371e89b7290bfea2897f3")
+	fmt.Println(containerJSon.Memory_stats)
+	fmt.Println(containerJSon.Cpu_stats)
+	// iostream.PrintObj(containerJSon.Memory_stats)
+	// iostream.PrintObj(containerJSon.Cpu_stats)
 	// doc.BuildImage(internal.BuildOptions{
 	// 	Context:              GitLink,
 	// 	Label:                Name,

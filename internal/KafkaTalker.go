@@ -84,15 +84,15 @@ func (k *KafkaReader) ReaderServer(
 			atomic.AddInt64(&counter, 1)
 			mu.Unlock()
 			go func() {
-				defer func() {
-					atomic.AddInt64(&counter, -1)
-				}()
+				// defer func() {
+				// 	}()
 				message, err := k.Reader.ReadMessage(context.Background())
 				fmt.Printf("%s recieved", string(message.Key))
 				if err != nil {
 					onError()
 				}
 				callback(message)
+				atomic.AddInt64(&counter, -1)
 			}()
 		} else {
 			mu.Unlock()

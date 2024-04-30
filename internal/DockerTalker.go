@@ -15,6 +15,7 @@ import (
 	"github.com/ayush18023/Load_balancer_Fyp/internal/auth"
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
+	"github.com/docker/docker/api/types/filters"
 	registery "github.com/docker/docker/api/types/registry"
 	"github.com/docker/docker/builder/remotecontext/urlutil"
 	"github.com/docker/docker/client"
@@ -38,15 +39,6 @@ type Reader struct {
 // 	EnvVars    map[string]string
 // }
 
-type BuildOptions struct {
-	Label                string
-	Context              string
-	DockerfileName       string
-	UseDefaultDockerFile bool
-	GitBranch            string
-	DockerfileContent    string
-}
-
 func NewReader(in io.ReadCloser) *Reader {
 	return &Reader{
 		in: in,
@@ -58,6 +50,16 @@ func (d *Dockter) Init() {
 	d.cli, err = client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
 	if err != nil {
 		panic(err)
+	}
+}
+
+func NewDockter() *Dockter {
+	cli, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
+	if err != nil {
+		log.Fatal(err)
+	}
+	return &Dockter{
+		cli: cli,
 	}
 }
 
@@ -192,6 +194,59 @@ func (d *Dockter) ListContainers() []types.Container {
 		panic(err)
 	}
 	return containers
+}
+
+func (d *Dockter) InspectContainer(containerID string) (types.ContainerJSON, error) {
+	return d.cli.ContainerInspect(context.Background(), containerID)
+}
+
+func (d *Dockter) StatsContainer(containerID string) (types.ContainerStats, error) {
+	return d.cli.ContainerStats(context.Background(), containerID, false)
+}
+
+func (d *Dockter) ContainerMetrics(containerID string) (ContainerMetricInfo, error) {
+	containerInfo, err := d.cli.ContainerStats(context.Background(), containerID, false)
+	if err != nil {
+		return ContainerMetricInfo{}, err
+	}
+	defer containerInfo.Body.Close()
+	data, err := io.ReadAll(containerInfo.Body)
+	if err != nil {
+		return ContainerMetricInfo{}, err
+	}
+	var containerMetrics ContainerMetricInfo
+	if err = json.Unmarshal(data, &containerMetrics); err != nil {
+		return ContainerMetricInfo{}, err
+	}
+	return containerMetrics, nil
+}
+
+func GetBasedMetrics(containerID string) (*ContainerBasedMetric, error) {
+	d := NewDockter()
+	defer d.Close()
+	metrics, err := d.ContainerMetrics(containerID)
+	if err != nil {
+		return nil, err
+	}
+	var filter filters.Args
+	filter.Add("id", containerID)
+	containers, err := d.cli.ContainerList(context.Background(), container.ListOptions{
+		Size:    true,
+		Filters: filter,
+	})
+	if err != nil {
+		return nil, err
+	}
+	//Below Calculation from Docker api reference
+	cpuDelta := metrics.Cpu_stats.Cpu_usage.Total_usage - metrics.Precpu_stats.Cpu_usage.Total_usage
+	systemCpuDelta := metrics.Cpu_stats.System_cpu_usage - metrics.Precpu_stats.System_cpu_usage
+	numberCpus := metrics.Cpu_stats.Online_cpus
+	basedMetric := &ContainerBasedMetric{
+		MemUsage:   metrics.Memory_stats.Usage,
+		CpuPercent: (cpuDelta / systemCpuDelta) * int64(numberCpus) * 100,
+		DiskUsage:  containers[0].SizeRootFs,
+	}
+	return basedMetric, nil
 }
 
 func (d *Dockter) RunContainer(imageName string, containerName string, ports []string) (string, error) {

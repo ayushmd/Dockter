@@ -31,14 +31,19 @@ func (w *WorkerServer) HealthScore(ctx context.Context, in *emptypb.Empty) (*wor
 }
 
 func (w *WorkerServer) HealthMetrics(ctx context.Context, in *emptypb.Empty) (*workerrpc.HealthMetricResponse, error) {
-	cpuUsage, memUsage, diskUsage, err := internal.HealthMetrics()
+	// cpuUsage, memUsage, diskUsage, err := internal.HealthMetrics()
+	basedHealth, err := internal.HealthMetricsBased()
 	if err != nil {
 		return &workerrpc.HealthMetricResponse{}, err
 	}
 	return &workerrpc.HealthMetricResponse{
-		CpuUsage:  float32(cpuUsage),
-		MemUsage:  float32(memUsage),
-		DiskUsage: float32(diskUsage),
+		CpuPercent:       basedHealth.CpuPercent,
+		MemUsage:         basedHealth.MemUsage,
+		TotalMem:         basedHealth.TotalMem,
+		MemUsedPercent:   float32(basedHealth.MemUsedPercent),
+		DiskUsage:        basedHealth.DiskUsage,
+		TotalDisk:        basedHealth.TotalDisk,
+		DiskUsagePercent: float32(basedHealth.DiskUsagePercent),
 	}, nil
 }
 

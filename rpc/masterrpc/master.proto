@@ -8,12 +8,20 @@ message MWhoAmIResponse{
     string State = 1;
 }
 
+message BasedMetrics{
+    int64 CpuPercent  = 1;
+    int32 MemUsage  = 2;
+    int32 TotalMem  = 3;
+    float MemUsedPercent  = 4;
+    int64 DiskUsage = 5;
+    int64 TotalDisk = 6;
+    float DiskUsagePercent = 7;
+}
+
 message JoinServer{
     string url = 1; // ip:port
     string State = 2;
-    float CpuUsage = 3;
-    float MemUsage = 4;
-    float DiskUsage = 5;
+    BasedMetrics Stats = 3;
 }
 
 message JoinResponse{

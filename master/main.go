@@ -22,13 +22,12 @@ import (
 )
 
 type Backend struct {
-	URL            url.URL `json:"url"`
-	State          string  `json:"state"`
-	IsAlive        bool    `json:"isalive"`
-	CurrentConnect int     `json:"connections"`
-	CpuUsage       float64 `json:"cpu"`
-	MemUsage       float64 `json:"mem"`
-	DiskUsage      float64 `json:"disk"`
+	URL            url.URL                       `json:"url"`
+	State          string                        `json:"state"`
+	IsAlive        bool                          `json:"isalive"`
+	CurrentConnect int                           `json:"connections"`
+	Stats          internal.ContainerBasedMetric `json:"stats"`
+	Rtt            time.Duration                 `json:"rtt"`
 	mux            sync.RWMutex
 	//Algo part
 }
@@ -64,6 +63,7 @@ type TaskImageRequest struct {
 	Name        string `json:"name"`
 	DockerImage string `json:"dockerImage"`
 	RunningPort string `json:"runningPort"`
+	BasedMetric internal.ContainerBasedMetric
 } // DEPLOY
 
 func (b *Backend) AddConn() {
@@ -134,60 +134,91 @@ func (m *Master) GetDnsRecord(id string) *sql.Row {
 	return row
 }
 
-func (m *Master) PoolServ(waitgrp *sync.WaitGroup, serv *Backend) {
+func (m *Master) RetryDed(serv *Backend) {
+	for retry_count := 0; retry_count < 3; retry_count++ {
+		if m.PoolServ(serv) != nil {
+			return
+		}
+		time.Sleep(2 * time.Second)
+	}
+}
+
+func (m *Master) PoolServ(serv *Backend) error {
 	fmt.Println("Pooling server ", serv.URL.Host)
-	defer waitgrp.Done()
 	conn, err := grpc.Dial(
 		serv.URL.Host,
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 		grpc.WithKeepaliveParams(kacp),
 	)
 	if err != nil {
-		log.Fatalf("did not connect: %v", err)
+		// log.Fatalf("did not connect: %v", err)
+		return err
 	}
 	defer conn.Close()
 
 	if serv.State == "WORKER" {
 		w := workerrpc.NewWorkerServiceClient(conn)
-
+		start := time.Now()
 		ctx, cancel := context.WithTimeout(context.Background(), 3*time.Minute)
 		defer cancel()
 		res, err := w.HealthMetrics(ctx, &emptypb.Empty{})
+		end := time.Now()
 		if err != nil {
 			fmt.Printf("Server %s didnt respond", serv.URL.Host)
 			serv.IsAlive = false
-			fmt.Println(err)
-			return
+			return err
 		}
-		serv.CpuUsage = float64(res.CpuUsage)
-		serv.MemUsage = float64(res.MemUsage)
-		serv.DiskUsage = float64(res.DiskUsage)
+		serv.Stats.CpuPercent = res.CpuPercent
+		serv.Stats.MemUsage = res.MemUsage
+		serv.Stats.TotalMem = res.TotalMem
+		serv.Stats.MemUsedPercent = float64(res.MemUsedPercent)
+		serv.Stats.DiskUsage = res.DiskUsage
+		serv.Stats.TotalDisk = res.TotalDisk
+		serv.Stats.DiskUsagePercent = float64(res.DiskUsagePercent)
+		// serv.CpuUsage = float64(res.CpuUsage)
+		// serv.MemUsage = float64(res.MemUsage)
+		// serv.DiskUsage = float64(res.DiskUsage)
+		serv.Rtt = end.Sub(start)
 		serv.IsAlive = true
 	} else {
 		b := builderrpc.NewBuilderServiceClient(conn)
-
+		start := time.Now()
 		ctx, cancel := context.WithTimeout(context.Background(), 3*time.Minute)
 		defer cancel()
 		res, err := b.BuildHealthMetrics(ctx, &emptypb.Empty{})
+		end := time.Now()
 		if err != nil {
 			fmt.Printf("Server %s didnt respond", serv.URL.Host)
 			serv.IsAlive = false
-			fmt.Println(err)
-			return
+			return err
 		}
-		serv.CpuUsage = float64(res.CpuUsage)
-		serv.MemUsage = float64(res.MemUsage)
-		serv.DiskUsage = float64(res.DiskUsage)
+		serv.Stats.CpuPercent = res.CpuPercent
+		serv.Stats.MemUsage = res.MemUsage
+		serv.Stats.TotalMem = res.TotalMem
+		serv.Stats.MemUsedPercent = float64(res.MemUsedPercent)
+		serv.Stats.DiskUsage = res.DiskUsage
+		serv.Stats.TotalDisk = res.TotalDisk
+		serv.Stats.DiskUsagePercent = float64(res.DiskUsagePercent)
+		serv.Rtt = end.Sub(start)
 		serv.IsAlive = true
 	}
+	return nil
 }
 
 func (m *Master) Pool() {
 	fmt.Println("Pooling started")
 	var waitgrp *sync.WaitGroup = &sync.WaitGroup{}
 	for _, serv := range m.ServerPool {
-		waitgrp.Add(1)
-		go m.PoolServ(waitgrp, serv)
+		if serv.IsAlive {
+			waitgrp.Add(1)
+			go func(serv *Backend) {
+				err := m.PoolServ(serv)
+				if err != nil {
+					go m.RetryDed(serv)
+				}
+				waitgrp.Done()
+			}(serv)
+		}
 	}
 	waitgrp.Wait()
 }
@@ -202,7 +233,7 @@ func (m *Master) HasJoined(peerurl string) int {
 }
 
 func Handshake(peerurl string) {
-	for retries := 0; retries < 0; retries++ {
+	for retries := 0; retries < 3; retries++ {
 		if Master_.dnsStatus != STARTED {
 			err := HandshakePolicy(CLEAR_INACTIVE, peerurl)
 			if err != nil {
@@ -215,7 +246,7 @@ func Handshake(peerurl string) {
 	}
 }
 
-func (m *Master) Join(peerurl, peerState string, CpuUsage, MemUsage, DiskUsage float64) {
+func (m *Master) Join(peerurl, peerState string, HealthStats internal.ContainerBasedMetric) {
 	if i := m.HasJoined(peerurl); i == -1 {
 		fmt.Printf("%s(%s) joined\n", peerState, peerurl)
 		urlparsed := url.URL{
@@ -225,10 +256,8 @@ func (m *Master) Join(peerurl, peerState string, CpuUsage, MemUsage, DiskUsage f
 			URL:            urlparsed,
 			State:          peerState,
 			CurrentConnect: 0,
-			CpuUsage:       CpuUsage,
-			MemUsage:       MemUsage,
-			DiskUsage:      DiskUsage,
 			IsAlive:        true,
+			Stats:          HealthStats,
 		})
 	} else {
 		m.ServerPool[i].IsAlive = true
@@ -288,6 +317,11 @@ func (m *Master) BuildRaw(message kafka.Message) {
 		Name:        buildRawResponse.GetName(),
 		DockerImage: buildRawResponse.GetImageName(),
 		RunningPort: buildRawResponse.GetRunningPort(),
+		BasedMetric: internal.ContainerBasedMetric{
+			CpuPercent: buildRawResponse.BasedMetrics.CpuPercent,
+			MemUsage:   buildRawResponse.BasedMetrics.MemUsage,
+			DiskUsage:  buildRawResponse.BasedMetrics.DiskUsage,
+		},
 	})
 	if err != nil {
 		panic("Couldnt marshal 2")
@@ -374,6 +408,9 @@ func (m *Master) Deploy(message kafka.Message) {
 	}
 	if m.dbDns != nil {
 		err = m.AddDnsRecord(task)
+		if err != nil {
+			log.Fatal(err)
+		}
 	}
 	m.cacheDns.Add(configs.Name, task)
 }

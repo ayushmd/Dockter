@@ -87,7 +87,7 @@ const localCloneRepo string = "repos"
 func (b *Builder) BuildRaw(
 	Name, GitLink, Branch, BuildCmd, StartCmd, RuntimeEnv string, runningPort string,
 	EnvVars map[string]string,
-) (string, error) {
+) (string, *internal.ContainerBasedMetric, error) {
 	var (
 		// buildCtx io.ReadCloser
 		err error
@@ -103,7 +103,7 @@ func (b *Builder) BuildRaw(
 
 	if err != nil && err != git.ErrRepositoryAlreadyExists {
 		fmt.Printf("Failed to clone repository: %v\n", err)
-		return "", err
+		return "", nil, err
 	}
 
 	dockerfileContent := []byte(b.BuildDockerLayers(Name, BuildCmd, StartCmd, RuntimeEnv, EnvVars))
@@ -114,7 +114,7 @@ func (b *Builder) BuildRaw(
 	)
 	if err != nil {
 		fmt.Printf("Failed to write Dockerfile: %v\n", err)
-		return "", err
+		return "", nil, err
 	}
 	// CreateImage(Name, filpth)
 	doc := internal.Dockter{}
@@ -122,7 +122,7 @@ func (b *Builder) BuildRaw(
 	defer doc.Close()
 	hostport, err := internal.GetFreePort()
 	if err != nil {
-		log.Fatal(err)
+		return "", nil, err
 	}
 	doc.BuildNewImage(Name, filpth)
 	// hostConfig := &container.HostConfig{
@@ -140,12 +140,16 @@ func (b *Builder) BuildRaw(
 	if err != nil {
 		log.Fatal(err)
 	}
+	basedMetrics, err := internal.GetBasedMetrics(containerID)
+	if err != nil {
+		return "", nil, err
+	}
 	defer doc.TrashContainer(containerID)
 	tag := doc.PushToRegistry(
 		Name,
 		auth.GetKey("DOCKER_HUB_REPO_NAME"),
 	)
-	return tag, nil
+	return tag, basedMetrics, nil
 }
 
 func (w *Builder) JoinMaster(masterurl string) {
@@ -163,18 +167,25 @@ func (w *Builder) JoinMaster(masterurl string) {
 	master := masterrpc.NewMasterServiceClient(conn)
 	myurl := fmt.Sprintf(":%d", w.Port)
 	// fmt.Println("Till here ", myurl)
-	CpuUsage, MemUsage, DiskUsage, err := internal.HealthMetrics()
+	basedMetrics, err := internal.HealthMetricsBased()
 	if err != nil {
-		panic("Health")
+		panic(err)
+	}
+	HealthStats := &masterrpc.BasedMetrics{
+		CpuPercent:       basedMetrics.CpuPercent,
+		MemUsage:         basedMetrics.MemUsage,
+		TotalMem:         basedMetrics.TotalMem,
+		MemUsedPercent:   float32(basedMetrics.MemUsedPercent),
+		DiskUsage:        basedMetrics.DiskUsage,
+		TotalDisk:        basedMetrics.TotalDisk,
+		DiskUsagePercent: float32(basedMetrics.DiskUsagePercent),
 	}
 	_, err = master.Join(
 		context.Background(),
 		&masterrpc.JoinServer{
-			Url:       myurl,
-			State:     "BUILDER",
-			CpuUsage:  float32(CpuUsage),
-			MemUsage:  float32(MemUsage),
-			DiskUsage: float32(DiskUsage),
+			Url:   myurl,
+			State: "BUILDER",
+			Stats: HealthStats,
 		},
 	)
 	if err != nil {

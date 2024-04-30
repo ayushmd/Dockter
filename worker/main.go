@@ -98,7 +98,20 @@ func (w *Worker) JoinMaster(masterurl string) {
 	// }
 	myurl := fmt.Sprintf(":%d", w.Port)
 	// fmt.Println("Till here ", myurl)
-	CpuUsage, MemUsage, DiskUsage, err := internal.HealthMetrics()
+	// CpuUsage, MemUsage, DiskUsage, err := internal.HealthMetrics()
+	basedMetrics, err := internal.HealthMetricsBased()
+	if err != nil {
+		panic(err)
+	}
+	HealthStats := &masterrpc.BasedMetrics{
+		CpuPercent:       basedMetrics.CpuPercent,
+		MemUsage:         basedMetrics.MemUsage,
+		TotalMem:         basedMetrics.TotalMem,
+		MemUsedPercent:   float32(basedMetrics.MemUsedPercent),
+		DiskUsage:        basedMetrics.DiskUsage,
+		TotalDisk:        basedMetrics.TotalDisk,
+		DiskUsagePercent: float32(basedMetrics.DiskUsagePercent),
+	}
 	// fmt.Printf("The cpu usage is %f", CpuUsage)
 	if err != nil {
 		panic("Health")
@@ -106,11 +119,9 @@ func (w *Worker) JoinMaster(masterurl string) {
 	joinresp, err := master.Join(
 		context.Background(),
 		&masterrpc.JoinServer{
-			Url:       myurl,
-			State:     "WORKER",
-			CpuUsage:  float32(CpuUsage),
-			MemUsage:  float32(MemUsage),
-			DiskUsage: float32(DiskUsage),
+			Url:   myurl,
+			State: "WORKER",
+			Stats: HealthStats,
 		},
 	)
 	if err != nil {
