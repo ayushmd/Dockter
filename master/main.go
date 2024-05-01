@@ -144,7 +144,7 @@ func (m *Master) RetryDed(serv *Backend) {
 }
 
 func (m *Master) PoolServ(serv *Backend) error {
-	log.Println("Pooling server ", serv.URL.Host)
+
 	conn, err := grpc.Dial(
 		serv.URL.Host,
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
@@ -168,6 +168,8 @@ func (m *Master) PoolServ(serv *Backend) error {
 			serv.IsAlive = false
 			return err
 		}
+		metricData, err := json.Marshal(res)
+		log.Println("Pooled server ", serv.URL.Host, string(metricData))
 		serv.Stats.CpuPercent = res.CpuPercent
 		serv.Stats.MemUsage = res.MemUsage
 		serv.Stats.TotalMem = res.TotalMem
@@ -192,6 +194,8 @@ func (m *Master) PoolServ(serv *Backend) error {
 			serv.IsAlive = false
 			return err
 		}
+		metricData, err := json.Marshal(res)
+		log.Println("Pooled server ", serv.URL.Host, string(metricData))
 		serv.Stats.CpuPercent = res.CpuPercent
 		serv.Stats.MemUsage = res.MemUsage
 		serv.Stats.TotalMem = res.TotalMem
@@ -274,7 +278,7 @@ func (m *Master) GetServerPoolHandler() ([]byte, error) {
 }
 
 func (m *Master) AddTask(request string, marshTask []byte) {
-	log.Println(request, string(marshTask))
+	log.Println("Add Task:", request, string(marshTask))
 	m.kwriter.Write(
 		[]byte(request),
 		marshTask,
@@ -381,6 +385,8 @@ func (m *Master) Deploy(message kafka.Message) {
 		MemUsage:   configs.BasedMetric.MemUsage,
 		DiskUsage:  configs.BasedMetric.DiskUsage,
 	})
+	backendJson, err := json.Marshal(backend)
+	log.Println("Selected Backend:", backendJson)
 	conn, err := grpc.Dial(
 		backend.URL.Host,
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
