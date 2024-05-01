@@ -102,51 +102,51 @@
                         <p>CPU</p>
                         <div style="background-color: #D3D3D3; width: 150px; height: 12px; margin-left: 15px;">
                             {{ if .IsAlive }}
-                                {{ if lt .CpuUsage 80.0 }}
-                                    <div style="width: {{.CpuUsage}}%; background-color: green; height: 12px;"></div>
+                                {{ if lt .Stats.CpuPercent 80.0 }}
+                                    <div style="width: {{.Stats.CpuPercent}}%; background-color: green; height: 12px;"></div>
                                 {{ else }}
-                                    <div style="width: {{.CpuUsage}}%; background-color: red; height: 12px;"></div>
+                                    <div style="width: {{.Stats.CpuPercent}}%; background-color: red; height: 12px;"></div>
                                 {{ end }}
                             {{ else }}
-                                <div style="width: {{.CpuUsage}}%; background-color: gray; height: 12px;"></div>
+                                <div style="width: {{.Stats.CpuPercent}}%; background-color: gray; height: 12px;"></div>
                             {{ end }}
                         </div>
                         <div style="margin-left: 15px;">
-                            {{ printf "%.2f" .CpuUsage }}
+                            {{ printf "%.2f" .Stats.CpuPercent }}
                         </div>
                     </div>
                     <div style="display: flex; align-items: center;">
                         <p>Mem</p>
                         <div style="background-color: #D3D3D3; width: 150px; height: 12px; margin-left: 15px;">
                             {{ if .IsAlive }}
-                                {{ if lt .MemUsage 80.0 }}
-                                    <div style="width: {{.MemUsage}}%; background-color: green; height: 12px;"></div>
+                                {{ if lt .Stats.MemUsedPercent 80.0 }}
+                                    <div style="width: {{.Stats.MemUsedPercent}}%; background-color: green; height: 12px;"></div>
                                 {{ else }}
-                                    <div style="width: {{.MemUsage}}%; background-color: red; height: 12px;"></div>
+                                    <div style="width: {{.Stats.MemUsedPercent}}%; background-color: red; height: 12px;"></div>
                                 {{ end }}
                             {{ else }}
-                                <div style="width: {{.MemUsage}}%; background-color: gray; height: 12px;"></div>
+                                <div style="width: {{.Stats.MemUsedPercent}}%; background-color: gray; height: 12px;"></div>
                             {{ end }}
                         </div>
                         <div style="margin-left: 15px;">
-                            {{ printf "%.2f" .MemUsage }}
+                            {{ printf "%.2f" .Stats.MemUsedPercent }}
                         </div>
                     </div>
                     <div style="display: flex; align-items: center;">
                         <p>Disk</p>
                         <div style="background-color: #D3D3D3; width: 150px; height: 12px; margin-left: 15px;">
                             {{ if .IsAlive }}
-                                {{ if lt .DiskUsage 80.0 }}
-                                    <div style="width: {{.DiskUsage}}%; background-color: green; height: 12px;"></div>
+                                {{ if lt .Stats.DiskUsagePercent 80.0 }}
+                                    <div style="width: {{.Stats.DiskUsagePercent}}%; background-color: green; height: 12px;"></div>
                                 {{ else }}
-                                    <div style="width: {{.DiskUsage}}%; background-color: red; height: 12px;"></div>
+                                    <div style="width: {{.Stats.DiskUsagePercent}}%; background-color: red; height: 12px;"></div>
                                 {{ end }}
                             {{ else }}
-                                <div style="width: {{.DiskUsage}}%; background-color: gray; height: 12px;"></div>
+                                <div style="width: {{.Stats.DiskUsagePercent}}%; background-color: gray; height: 12px;"></div>
                             {{ end }}
                         </div>
                         <div style="margin-left: 15px;">
-                            {{ printf "%.2f" .DiskUsage}}
+                            {{ printf "%.2f" .Stats.DiskUsagePercent}}
                         </div>
                     </div>
                 </div>
