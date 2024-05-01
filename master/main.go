@@ -385,8 +385,8 @@ func (m *Master) Deploy(message kafka.Message) {
 		MemUsage:   configs.BasedMetric.MemUsage,
 		DiskUsage:  configs.BasedMetric.DiskUsage,
 	})
-	backendJson, err := json.Marshal(backend)
-	log.Println("Selected Backend:", backendJson)
+	// backendJson, err := json.Marshal(backend)
+	log.Println("Selected Backend:", backend.URL.Host)
 	conn, err := grpc.Dial(
 		backend.URL.Host,
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
@@ -416,12 +416,12 @@ func (m *Master) Deploy(message kafka.Message) {
 		Hostport:    buildRawResponse.GetHostPort(),
 		ContainerID: buildRawResponse.GetContainerID(),
 	}
-	if m.dbDns != nil {
-		err = m.AddDnsRecord(task)
-		if err != nil {
-			log.Fatal(err)
-		}
-	}
+	// if m.dbDns != nil {
+	// 	err = m.AddDnsRecord(task)
+	// 	if err != nil {
+	// 		log.Fatal(err)
+	// 	}
+	// }
 	m.cacheDns.Add(configs.Name, task)
 }
 
