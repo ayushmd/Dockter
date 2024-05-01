@@ -228,11 +228,10 @@ func GetBasedMetrics(containerID string) (*ContainerBasedMetric, error) {
 	if err != nil {
 		return nil, err
 	}
-	var filter filters.Args
-	filter.Add("id", containerID)
+	f := filters.NewArgs(filters.KeyValuePair{Key: "id", Value: containerID})
 	containers, err := d.cli.ContainerList(context.Background(), container.ListOptions{
 		Size:    true,
-		Filters: filter,
+		Filters: f,
 	})
 	if err != nil {
 		return nil, err
