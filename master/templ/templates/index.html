@@ -102,7 +102,7 @@
                         <p>CPU</p>
                         <div style="background-color: #D3D3D3; width: 150px; height: 12px; margin-left: 15px;">
                             {{ if .IsAlive }}
-                                {{ if lt .Stats.CpuPercent 80.0 }}
+                                {{ if lt .Stats.CpuPercent 80 }}
                                     <div style="width: {{.Stats.CpuPercent}}%; background-color: green; height: 12px;"></div>
                                 {{ else }}
                                     <div style="width: {{.Stats.CpuPercent}}%; background-color: red; height: 12px;"></div>
@@ -112,7 +112,7 @@
                             {{ end }}
                         </div>
                         <div style="margin-left: 15px;">
-                            {{ printf "%.2f" .Stats.CpuPercent }}
+                            {{ .Stats.CpuPercent }}
                         </div>
                     </div>
                     <div style="display: flex; align-items: center;">

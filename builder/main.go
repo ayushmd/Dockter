@@ -31,7 +31,7 @@ func (b *Builder) GetBaseEnvironment(RuntimeEnv string) string {
 	case "node":
 		return "FROM node:10-alpine"
 	case "go":
-		return "FROM golang:1.16"
+		return "FROM golang:1.22"
 	}
 	return ""
 }
@@ -82,6 +82,44 @@ func (b *Builder) BuildDockerLayers(Name, BuildCmd, StartCmd, RuntimeEnv string,
 	return DockerFileContent
 }
 
+func (b *Builder) BuildDockerByLang(Name, BuildCmd, StartCmd, RuntimeEnv string, EnvVars map[string]string) string {
+	switch strings.ToLower(RuntimeEnv) {
+	case "python":
+		dockerImage := fmt.Sprintf(`
+FROM python:3.9
+%s
+%s
+%s
+%s
+%s
+`, b.GetWorkdir(), b.GetEnvVariables(EnvVars), b.Copyfiles(Name), b.GetRunCommand(BuildCmd), b.GetStartCommand(StartCmd))
+		return dockerImage
+	case "node":
+		dockerImage := fmt.Sprintf(`
+FROM node:10-alpine
+%s
+%s
+%s
+%s
+%s
+`, b.GetWorkdir(), b.GetEnvVariables(EnvVars), b.Copyfiles(Name), b.GetRunCommand(BuildCmd), b.GetStartCommand(StartCmd))
+		return dockerImage
+	case "go":
+		dockerImage := fmt.Sprintf(`
+FROM golang:1.22
+%s
+COPY go.mod go.sum ./
+RUN go mod download && go mod verify
+%s
+%s
+%s
+%s
+`, b.GetWorkdir(), b.GetEnvVariables(EnvVars), b.Copyfiles(Name), b.GetRunCommand(BuildCmd), b.GetStartCommand(StartCmd))
+		return dockerImage
+	}
+	return ""
+}
+
 const localCloneRepo string = "repos"
 
 func (b *Builder) BuildRaw(
@@ -106,7 +144,7 @@ func (b *Builder) BuildRaw(
 		return "", nil, err
 	}
 
-	dockerfileContent := []byte(b.BuildDockerLayers(Name, BuildCmd, StartCmd, RuntimeEnv, EnvVars))
+	dockerfileContent := []byte(b.BuildDockerByLang(Name, BuildCmd, StartCmd, RuntimeEnv, EnvVars))
 	err = os.WriteFile(
 		relDockerFile,
 		dockerfileContent,

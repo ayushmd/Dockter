@@ -43,13 +43,13 @@ func main() {
 	// BuildCmd := "npm i"
 	// RunCmd := "npm start"
 	// RuntimeEnv := "Node"
-	doc := internal.Dockter{}
-	doc.Init()
-	defer doc.Close()
-	// fmt.Println(doc.ListContainers())
-	containerJSon, _ := doc.ContainerMetrics("962bde4d3c8f25a9b4efdcbce351768dfda657cfd93371e89b7290bfea2897f3")
-	fmt.Println(containerJSon.Memory_stats)
-	fmt.Println(containerJSon.Cpu_stats)
+	// doc := internal.Dockter{}
+	// doc.Init()
+	// defer doc.Close()
+	// // fmt.Println(doc.ListContainers())
+	// containerJSon, _ := doc.ContainerMetrics("962bde4d3c8f25a9b4efdcbce351768dfda657cfd93371e89b7290bfea2897f3")
+	// fmt.Println(containerJSon.Memory_stats)
+	// fmt.Println(containerJSon.Cpu_stats)
 	// iostream.PrintObj(containerJSon.Memory_stats)
 	// iostream.PrintObj(containerJSon.Cpu_stats)
 	// doc.BuildImage(internal.BuildOptions{
@@ -75,7 +75,7 @@ func main() {
 	var join string
 	var generateToken bool
 	flag.IntVar(&Port, "port", DefaultPort, "Port to serve")
-	flag.StringVar(&State, "state", "", "Load balanced backends, use commas to separate")
+	flag.StringVar(&State, "state", "MASTER", "Load balanced backends, use commas to separate")
 	flag.StringVar(&join, "join", "", "Join a master")
 	flag.BoolVar(&generateToken, "generatetoken", false, "Gives the token to join master")
 	flag.Parse()
