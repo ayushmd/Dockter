@@ -9,18 +9,17 @@ import (
 	"github.com/ayush18023/Load_balancer_Fyp/internal"
 	"github.com/ayush18023/Load_balancer_Fyp/rpc/masterrpc"
 	"github.com/docker/docker/api/types"
-	lru "github.com/hashicorp/golang-lru/v2"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 )
 
-type LocalTask struct {
-	Subdomain   string //a unique id
-	Hostport    string
-	Runningport string
-	ImageName   string
-	ContainerID string
-}
+// type LocalTask struct {
+// 	Subdomain   string //a unique id
+// 	Hostport    string
+// 	Runningport string
+// 	ImageName   string
+// 	ContainerID string
+// }
 
 type BackendCopy struct {
 	URL   url.URL `json:"url"`
@@ -33,7 +32,7 @@ type Worker struct {
 	Port       int
 	Master     url.URL
 	ServerPool []*BackendCopy
-	cacheDns   *lru.Cache[string, LocalTask]
+	// cacheDns   *lru.Cache[string, LocalTask]
 }
 
 var Worker_ *Worker = &Worker{}
@@ -63,13 +62,13 @@ func (w *Worker) AddTask(id, imageName, runningPort string) (string, string, err
 	if err != nil {
 		return "", "", err
 	}
-	w.cacheDns.Add(id, LocalTask{
-		Subdomain:   id,
-		ContainerID: containerID,
-		ImageName:   imageName,
-		Runningport: runningPort,
-		Hostport:    strPort,
-	})
+	// w.cacheDns.Add(id, LocalTask{
+	// 	Subdomain:   id,
+	// 	ContainerID: containerID,
+	// 	ImageName:   imageName,
+	// 	Runningport: runningPort,
+	// 	Hostport:    strPort,
+	// })
 	return strPort, containerID, nil
 }
 

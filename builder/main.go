@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/ayush18023/Load_balancer_Fyp/internal"
 	"github.com/ayush18023/Load_balancer_Fyp/internal/auth"
@@ -126,6 +127,7 @@ func (b *Builder) BuildRaw(
 	Name, GitLink, Branch, BuildCmd, StartCmd, RuntimeEnv string, runningPort string,
 	EnvVars map[string]string,
 ) (string, *internal.ContainerBasedMetric, error) {
+	start := time.Now()
 	var (
 		// buildCtx io.ReadCloser
 		err error
@@ -179,14 +181,18 @@ func (b *Builder) BuildRaw(
 		log.Fatal(err)
 	}
 	basedMetrics, err := internal.GetBasedMetrics(containerID)
+	runTime := time.Now()
 	if err != nil {
 		return "", nil, err
 	}
-	defer doc.TrashContainer(containerID)
 	tag := doc.PushToRegistry(
 		Name,
 		auth.GetKey("DOCKER_HUB_REPO_NAME"),
 	)
+	pushTime := time.Now()
+	doc.TrashContainer(containerID)
+	trashTime := time.Now()
+	log.Printf("%s ran:%s push:%s trash:%s\n", Name, runTime.Sub(start), pushTime.Sub(runTime), trashTime.Sub(pushTime))
 	return tag, basedMetrics, nil
 }
 
