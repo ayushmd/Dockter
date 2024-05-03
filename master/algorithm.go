@@ -3,7 +3,7 @@ package master
 import "github.com/ayush18023/Load_balancer_Fyp/internal"
 
 func GetWeight(basedMetrics internal.ContainerBasedMetric) float64 {
-	return 0.5*float64(basedMetrics.CpuPercent) + 0.3*basedMetrics.MemUsedPercent + 0.2*basedMetrics.DiskUsagePercent
+	return 0.2*float64(basedMetrics.CpuPercent) + 0.5*basedMetrics.MemUsedPercent + 0.3*basedMetrics.DiskUsagePercent
 }
 
 func MasterPlanAlgo(ServerPool []*Backend, state string) *Backend {
