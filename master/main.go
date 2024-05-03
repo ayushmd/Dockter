@@ -386,11 +386,7 @@ func (m *Master) Deploy(message kafka.Message) {
 	if len(m.ServerPool) == 0 {
 		return
 	}
-	backend := MasterPlanAlgo2(m.ServerPool, "WORKER", internal.ContainerBasedMetric{
-		CpuPercent: configs.BasedMetric.CpuPercent,
-		MemUsage:   configs.BasedMetric.MemUsage,
-		DiskUsage:  configs.BasedMetric.DiskUsage,
-	})
+	backend := MasterPlanAlgo(m.ServerPool, "WORKER")
 	// backendJson, err := json.Marshal(backend)
 	//log.Println("Selected Backend:", backend.URL.Host)
 	conn, err := grpc.Dial(
