@@ -421,12 +421,12 @@ func (m *Master) Deploy(message kafka.Message) {
 		Hostport:    buildRawResponse.GetHostPort(),
 		ContainerID: buildRawResponse.GetContainerID(),
 	}
-	if m.dbDns != nil {
-		err = m.AddDnsRecord(task)
-		if err != nil {
-			log.Fatal(err)
-		}
-	}
+	// if m.dbDns != nil {
+	// 	err = m.AddDnsRecord(task)
+	// 	if err != nil {
+	// 		log.Fatal(err)
+	// 	}
+	// }
 	m.cacheDns.Add(configs.Name, task)
 }
 

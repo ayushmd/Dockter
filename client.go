@@ -8,9 +8,24 @@ import (
 	"sync"
 )
 
-func makeRequest(name string) {
+func makeRawRequest(name string) {
 	url := "http://ayushd.cloud/api/buildraw"
 	body := fmt.Sprintf(`{"name":"%s","gitlink":"https://github.com/johnpapa/node-hello.git","branch":"master","buildCmd":"npm i","startCmd":"npm start","runtimeEnv":"Node","runningPort":"3000"}`, name)
+	// fmt.Println(body)
+	jsonStr := []byte(body)
+	req, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonStr))
+	req.Header.Set("Content-Type", "application/json")
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		log.Println(err)
+	}
+	defer resp.Body.Close()
+}
+
+func makeImageRequest(name string) {
+	url := "http://ayushd.cloud/api/deploy"
+	body := fmt.Sprintf(`{"name":"%s","dockerImage":"tyranthex/fyp_deps:node0","runningPort":"3000"}`, name)
 	// fmt.Println(body)
 	jsonStr := []byte(body)
 	req, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonStr))
@@ -30,7 +45,7 @@ func Client() {
 		name := fmt.Sprintf("node%d", i)
 		go func(name string) {
 			defer wg.Done()
-			makeRequest(name)
+			makeImageRequest(name)
 		}(name)
 	}
 	wg.Wait()
