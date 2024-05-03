@@ -22,13 +22,14 @@ import (
 )
 
 type Backend struct {
-	URL            url.URL                       `json:"url"`
-	State          string                        `json:"state"`
-	IsAlive        bool                          `json:"isalive"`
-	CurrentConnect int                           `json:"connections"`
-	Stats          internal.ContainerBasedMetric `json:"stats"`
-	Rtt            time.Duration                 `json:"rtt"`
-	mux            sync.RWMutex
+	URL             url.URL                       `json:"url"`
+	State           string                        `json:"state"`
+	IsAlive         bool                          `json:"isalive"`
+	CurrentConnect  int                           `json:"connections"`
+	Stats           internal.ContainerBasedMetric `json:"stats"`
+	Rtt             time.Duration                 `json:"rtt"`
+	NumofContainers int                           `json:"numofContainers"`
+	mux             sync.RWMutex
 	//Algo part
 }
 
@@ -120,11 +121,8 @@ var kacp = keepalive.ClientParameters{
 }
 
 func (m *Master) AddDnsRecord(task Task) error {
-	query := fmt.Sprintf(`INSERT INTO dns 
-	(Subdomain, HostIp, HostPort, RunningPort, ImageName, ContainerID)
-	VALUES 
-	(%s,%s,%s,%s,%s,%s)
-	`, task.Subdomain, task.URL.Host, task.Hostport, task.Runningport, task.ImageName, task.ContainerID)
+	query := fmt.Sprintf("INSERT INTO dns (Subdomain, HostIp, HostPort, RunningPort, ImageName, ContainerID) VALUES (%s,%s,%s,%s,%s,%s);",
+		task.Subdomain, task.URL.Host, task.Hostport, task.Runningport, task.ImageName, task.ContainerID)
 	_, err := m.dbDns.Exec(query)
 	return err
 }
@@ -168,8 +166,8 @@ func (m *Master) PoolServ(serv *Backend) error {
 			serv.IsAlive = false
 			return err
 		}
-		metricData, err := json.Marshal(res)
-		log.Println("Pooled server ", serv.URL.Host, string(metricData))
+		// metricData, err := json.Marshal(res)
+		//log.Println("Pooled server ", serv.URL.Host, string(metricData))
 		serv.Stats.CpuPercent = res.CpuPercent
 		serv.Stats.MemUsage = res.MemUsage
 		serv.Stats.TotalMem = res.TotalMem
@@ -194,8 +192,8 @@ func (m *Master) PoolServ(serv *Backend) error {
 			serv.IsAlive = false
 			return err
 		}
-		metricData, err := json.Marshal(res)
-		log.Println("Pooled server ", serv.URL.Host, string(metricData))
+		// metricData, err := json.Marshal(res)
+		//log.Println("Pooled server ", serv.URL.Host, string(metricData))
 		serv.Stats.CpuPercent = res.CpuPercent
 		serv.Stats.MemUsage = res.MemUsage
 		serv.Stats.TotalMem = res.TotalMem
@@ -210,7 +208,7 @@ func (m *Master) PoolServ(serv *Backend) error {
 }
 
 func (m *Master) Pool() {
-	log.Println("Pooling started")
+	//log.Println("Pooling started")
 	var waitgrp *sync.WaitGroup = &sync.WaitGroup{}
 	for _, serv := range m.ServerPool {
 		if serv.IsAlive {
@@ -257,11 +255,12 @@ func (m *Master) Join(peerurl, peerState string, HealthStats internal.ContainerB
 			Host: peerurl,
 		}
 		m.ServerPool = append(m.ServerPool, &Backend{
-			URL:            urlparsed,
-			State:          peerState,
-			CurrentConnect: 0,
-			IsAlive:        true,
-			Stats:          HealthStats,
+			URL:             urlparsed,
+			State:           peerState,
+			CurrentConnect:  0,
+			IsAlive:         true,
+			Stats:           HealthStats,
+			NumofContainers: 0,
 		})
 	} else {
 		m.ServerPool[i].IsAlive = true
@@ -278,7 +277,7 @@ func (m *Master) GetServerPoolHandler() ([]byte, error) {
 }
 
 func (m *Master) AddTask(request string, marshTask []byte) {
-	log.Println("Add Task:", request, string(marshTask))
+	//log.Println("Add Task:", request, string(marshTask))
 	m.kwriter.Write(
 		[]byte(request),
 		marshTask,
@@ -375,6 +374,7 @@ func (m *Master) BuildFile(message kafka.Message) {
 }
 
 func (m *Master) Deploy(message kafka.Message) {
+	startDep := time.Now()
 	var configs TaskImageRequest
 	err := json.Unmarshal(message.Value, &configs)
 	if err != nil {
@@ -386,7 +386,7 @@ func (m *Master) Deploy(message kafka.Message) {
 		DiskUsage:  configs.BasedMetric.DiskUsage,
 	})
 	// backendJson, err := json.Marshal(backend)
-	log.Println("Selected Backend:", backend.URL.Host)
+	//log.Println("Selected Backend:", backend.URL.Host)
 	conn, err := grpc.Dial(
 		backend.URL.Host,
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
@@ -408,6 +408,9 @@ func (m *Master) Deploy(message kafka.Message) {
 	if err != nil {
 		panic(err)
 	}
+	backend.NumofContainers += 1
+	endDep := time.Now()
+	log.Printf("%s:%d\n", configs.Name, endDep.Sub(startDep))
 	task := Task{
 		Subdomain:   configs.Name,
 		URL:         backend.URL,
@@ -416,12 +419,12 @@ func (m *Master) Deploy(message kafka.Message) {
 		Hostport:    buildRawResponse.GetHostPort(),
 		ContainerID: buildRawResponse.GetContainerID(),
 	}
-	// if m.dbDns != nil {
-	// 	err = m.AddDnsRecord(task)
-	// 	if err != nil {
-	// 		log.Fatal(err)
-	// 	}
-	// }
+	if m.dbDns != nil {
+		err = m.AddDnsRecord(task)
+		if err != nil {
+			log.Fatal(err)
+		}
+	}
 	m.cacheDns.Add(configs.Name, task)
 }
 
