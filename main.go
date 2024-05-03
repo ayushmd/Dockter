@@ -111,6 +111,8 @@ func main() {
 				if join != "" {
 					builder.Builder_.JoinMaster(addr)
 				}
+			} else if State == "client" {
+				Client()
 			} else {
 				log.Fatal("State not recognized")
 			}

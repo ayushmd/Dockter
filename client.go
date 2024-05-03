@@ -11,16 +11,13 @@ import (
 func makeRequest(name string) {
 	url := "http://ayushd.cloud/api/buildraw"
 	var jsonStr = []byte(fmt.Sprintf(`{
-"name":%s,
+"name":"%s",
 "gitlink":"https://github.com/johnpapa/node-hello.git",
 "branch":"master",
 "buildCmd":"npm i",
 "startCmd":"npm start",
 "runtimeEnv":"Node",
 "runningPort":"3000",
-"envVars":{
-	"KEY":"a"
-}
 }`, name))
 	req, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonStr))
 	req.Header.Set("Content-Type", "application/json")

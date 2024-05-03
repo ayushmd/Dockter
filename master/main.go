@@ -162,7 +162,7 @@ func (m *Master) PoolServ(serv *Backend) error {
 		res, err := w.HealthMetrics(ctx, &emptypb.Empty{})
 		end := time.Now()
 		if err != nil {
-			fmt.Printf("Server %s didnt respond", serv.URL.Host)
+			fmt.Printf("Server %s didnt respond\n", serv.URL.Host)
 			serv.IsAlive = false
 			return err
 		}
@@ -188,7 +188,7 @@ func (m *Master) PoolServ(serv *Backend) error {
 		res, err := b.BuildHealthMetrics(ctx, &emptypb.Empty{})
 		end := time.Now()
 		if err != nil {
-			fmt.Printf("Server %s didnt respond", serv.URL.Host)
+			fmt.Printf("Server %s didnt respond\n", serv.URL.Host)
 			serv.IsAlive = false
 			return err
 		}
@@ -290,6 +290,9 @@ func (m *Master) BuildRaw(message kafka.Message) {
 	if err != nil {
 		panic("Couldnt unmarshal")
 	}
+	if len(m.ServerPool) == 0 {
+		return
+	}
 	backend := MasterPlanAlgo(m.ServerPool, "BUILDER")
 	conn, err := grpc.Dial(
 		backend.URL.Host,
@@ -379,6 +382,9 @@ func (m *Master) Deploy(message kafka.Message) {
 	err := json.Unmarshal(message.Value, &configs)
 	if err != nil {
 		panic("Couldnt unmarshal")
+	}
+	if len(m.ServerPool) == 0 {
+		return
 	}
 	backend := MasterPlanAlgo2(m.ServerPool, "WORKER", internal.ContainerBasedMetric{
 		CpuPercent: configs.BasedMetric.CpuPercent,

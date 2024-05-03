@@ -135,7 +135,7 @@ func (b *Builder) BuildRaw(
 
 	filpth := filepath.Join(localCloneRepo, Name)
 	relDockerFile := filepath.Join(filpth, "Dockerfile")
-
+	defer os.RemoveAll(filpth)
 	_, err = git.PlainClone(filpth, false, &git.CloneOptions{
 		URL:      GitLink,
 		Progress: os.Stdout,
