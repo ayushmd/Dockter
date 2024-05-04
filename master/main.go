@@ -412,7 +412,7 @@ func (m *Master) Deploy(message kafka.Message) {
 	}
 	backend.NumofContainers += 1
 	endDep := time.Now()
-	log.Printf("%s:%d\n", configs.Name, endDep.Sub(startDep))
+	log.Printf("%s:%v\n", configs.Name, endDep.Sub(startDep))
 	task := Task{
 		Subdomain:   configs.Name,
 		URL:         backend.URL,
