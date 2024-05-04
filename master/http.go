@@ -85,6 +85,10 @@ func HasSubdomain(host string) bool {
 	return len(splits) == 3
 }
 
+func enableCors(w *http.ResponseWriter) {
+	(*w).Header().Set("Access-Control-Allow-Origin", "*")
+}
+
 func Handler(w http.ResponseWriter, r *http.Request) {
 	// keys := strings.Split(r.URL.Path, "/")
 	// task, ok := Master_.cacheDns.Get(keys[0])
@@ -94,6 +98,7 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 	// } else {
 	// 	router.Run(w, r)
 	// }
+	enableCors(&w)
 	log.Println(r.Method, r.Host, r.URL.Host)
 	if HasSubdomain(r.Host) {
 		DynamicRouter(w, r)
