@@ -45,3 +45,8 @@ install_go:
 	wget https://go.dev/dl/go1.22.2.linux-amd64.tar.gz
 	tar -C /usr/local -xzf go1.22.2.linux-amd64.tar.gz
 	export PATH=$PATH:/usr/local/go/bin
+
+docker_clean:
+	docker kill $(docker ps -aq)
+	docker rm -vf $(docker ps -aq)
+	docker rmi -f $(docker images -aq)
