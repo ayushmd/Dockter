@@ -85,8 +85,22 @@ func HasSubdomain(host string) bool {
 	return len(splits) == 3
 }
 
-func enableCors(w *http.ResponseWriter) {
-	(*w).Header().Set("Access-Control-Allow-Origin", "*")
+func corsHandler(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Allow requests from any origin with the specified headers
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+		w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
+
+		// If it's a preflight request, respond with a 200 status code
+		if r.Method == "OPTIONS" {
+			w.WriteHeader(http.StatusOK)
+			return
+		}
+
+		// Call the next handler in the chain
+		next.ServeHTTP(w, r)
+	})
 }
 
 func Handler(w http.ResponseWriter, r *http.Request) {
@@ -98,7 +112,6 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 	// } else {
 	// 	router.Run(w, r)
 	// }
-	enableCors(&w)
 	log.Println(r.Method, r.Host, r.URL.Host)
 	if HasSubdomain(r.Host) {
 		DynamicRouter(w, r)
@@ -146,6 +159,6 @@ func NewMasterHttpInstance(port int) *http.Server {
 	LoadUI(router)
 	return &http.Server{
 		Addr:    fmt.Sprintf(":%d", port),
-		Handler: http.HandlerFunc(Handler),
+		Handler: corsHandler(http.HandlerFunc(Handler)),
 	}
 }
