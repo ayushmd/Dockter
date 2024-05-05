@@ -121,14 +121,14 @@ var kacp = keepalive.ClientParameters{
 }
 
 func (m *Master) AddDnsRecord(task Task) error {
-	query := fmt.Sprintf("INSERT INTO dns (Subdomain, HostIp, HostPort, RunningPort, ImageName, ContainerID) VALUES (%s,%s,%s,%s,%s,%s);",
+	query := fmt.Sprintf("INSERT INTO dns (Subdomain, HostIp, HostPort, RunningPort, ImageName, ContainerID) VALUES ('%s','%s','%s','%s','%s','%s');",
 		task.Subdomain, task.URL.Host, task.Hostport, task.Runningport, task.ImageName, task.ContainerID)
 	_, err := m.dbDns.Exec(query)
 	return err
 }
 
 func (m *Master) GetDnsRecord(id string) *sql.Row {
-	row := m.dbDns.QueryRow("SELECT * FROM dns WHERE Subdomain=?", id)
+	row := m.dbDns.QueryRow("SELECT * FROM dns WHERE Subdomain='?'", id)
 	return row
 }
 
