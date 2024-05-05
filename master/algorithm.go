@@ -51,3 +51,7 @@ func MasterPlanAlgo2(ServerPool []*Backend, state string, taskStats internal.Con
 	}
 	return ServerPool[selectedi]
 }
+
+func BinPacking(ServerPool []*Backend, state string) {
+
+}
