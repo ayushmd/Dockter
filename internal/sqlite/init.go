@@ -37,7 +37,7 @@ func CreateConn() (*sql.DB, error) {
 	if err != nil {
 		return nil, err
 	}
-	_, err = db.Exec("CREATE TABLE IF NOT EXISTS dns (Subdomain TEXT PRIMARY KEY, HostIp TEXT, HostPort TEXT, RunningPort TEXT, ImageName TEXT, ContainerID TEXT)")
+	_, err = db.Exec("CREATE TABLE IF NOT EXISTS dns (Subdomain TEXT PRIMARY KEY, HostIp TEXT, HostPort TEXT, RunningPort TEXT, ImageName TEXT, ContainerID TEXT, Status TEXT)")
 	if err != nil {
 		return nil, err
 	}

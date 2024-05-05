@@ -8,6 +8,10 @@ import (
 	"net/http"
 )
 
+type StatusRequest struct {
+	Name string `json:"name"`
+}
+
 func LoadApi(router *Router) {
 	router.Get("/ping", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
@@ -29,6 +33,30 @@ func LoadApi(router *Router) {
 			log.Fatalf("Error happened in JSON marshal. Err: %s", err)
 		}
 		w.Write(jsonResp)
+	})
+
+	router.Post("/api/getStatus", func(w http.ResponseWriter, r *http.Request) {
+		var req StatusRequest
+		defer r.Body.Close()
+		body, _ := io.ReadAll(r.Body)
+		if err := json.Unmarshal(body, &req); err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			fmt.Fprintf(w, "Error")
+		}
+		row := Master_.GetDnsRecord(req.Name)
+		var Subdomain string
+		var HostIp string
+		var HostPort string
+		var RunningPort string
+		var ImageName string
+		var ContainerID string
+		var Status string
+		err := row.Scan(&Subdomain, &HostIp, &HostPort, &RunningPort, &ImageName, &ContainerID, &Status)
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+		}
+		w.WriteHeader(http.StatusOK)
+		fmt.Fprintf(w, Status)
 	})
 
 	router.Post("/api/buildraw", func(w http.ResponseWriter, r *http.Request) {

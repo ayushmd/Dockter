@@ -40,6 +40,7 @@ type Task struct {
 	Runningport string
 	ImageName   string
 	ContainerID string
+	Status      string
 }
 
 type TaskRawRequest struct {
@@ -121,8 +122,27 @@ var kacp = keepalive.ClientParameters{
 }
 
 func (m *Master) AddDnsRecord(task Task) error {
-	query := fmt.Sprintf("INSERT INTO dns (Subdomain, HostIp, HostPort, RunningPort, ImageName, ContainerID) VALUES ('%s','%s','%s','%s','%s','%s');",
-		task.Subdomain, task.URL.Host, task.Hostport, task.Runningport, task.ImageName, task.ContainerID)
+	query := fmt.Sprintf("INSERT INTO dns (Subdomain, HostIp, HostPort, RunningPort, ImageName, ContainerID, Status) VALUES ('%s','%s','%s','%s','%s','%s','%s');",
+		task.Subdomain, task.URL.Host, task.Hostport, task.Runningport, task.ImageName, task.ContainerID, task.Status)
+	_, err := m.dbDns.Exec(query)
+	return err
+}
+
+func (m *Master) AddBuilding(sudomain, runningPort string) error {
+	query := fmt.Sprintf("INSERT INTO dns (Subdomain, RunningPort, Status) VALUES ('%s','%s','%s');", sudomain, runningPort, "Building")
+	_, err := m.dbDns.Exec(query)
+	return err
+}
+
+func (m *Master) UpdateDnsStatus(domain, status string) error {
+	query := fmt.Sprintf("UPDATE dns SET Status = '%s' WHERE Subdomain = '%s';", status, domain)
+	_, err := m.dbDns.Exec(query)
+	return err
+}
+
+func (m *Master) UpdateDeployRecord(task Task) error {
+	query := fmt.Sprintf("UPDATE dns SET HostIp = '%s', HostPort = '%s', ImageName = '%s', ContainerID = '%s', Status = 'Deployed' WHERE Subdomain = '%s';",
+		task.URL.Host, task.Hostport, task.ImageName, task.ContainerID, task.Subdomain)
 	_, err := m.dbDns.Exec(query)
 	return err
 }
@@ -293,6 +313,12 @@ func (m *Master) BuildRaw(message kafka.Message) {
 	if len(m.ServerPool) == 0 {
 		return
 	}
+	go func() {
+		err := m.AddBuilding(configs.Name, configs.RunningPort)
+		if err != nil {
+			fmt.Println("Sqlite error ", err)
+		}
+	}()
 	backend := MasterPlanAlgo(m.ServerPool, "BUILDER")
 	conn, err := grpc.Dial(
 		backend.URL.Host,
@@ -386,6 +412,12 @@ func (m *Master) Deploy(message kafka.Message) {
 	if len(m.ServerPool) == 0 {
 		return
 	}
+	go func() {
+		err := m.UpdateDnsStatus(configs.Name, "Deploying")
+		if err != nil {
+			fmt.Println("Sqlite error ", err)
+		}
+	}()
 	backend := MasterPlanAlgo(m.ServerPool, "WORKER")
 	// backendJson, err := json.Marshal(backend)
 	//log.Println("Selected Backend:", backend.URL.Host)
@@ -421,6 +453,12 @@ func (m *Master) Deploy(message kafka.Message) {
 		Hostport:    buildRawResponse.GetHostPort(),
 		ContainerID: buildRawResponse.GetContainerID(),
 	}
+	go func() {
+		err := m.UpdateDeployRecord(task)
+		if err != nil {
+			fmt.Println("Sqlite error ", err)
+		}
+	}()
 	// if m.dbDns != nil {
 	// 	err = m.AddDnsRecord(task)
 	// 	if err != nil {
