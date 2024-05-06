@@ -148,7 +148,8 @@ func (m *Master) UpdateDeployRecord(task Task) error {
 }
 
 func (m *Master) GetDnsRecord(id string) *sql.Row {
-	row := m.dbDns.QueryRow("SELECT * FROM dns WHERE Subdomain='?'", id)
+	query := fmt.Sprintf("SELECT * FROM dns WHERE Subdomain='%s'", id)
+	row := m.dbDns.QueryRow(query)
 	return row
 }
 
