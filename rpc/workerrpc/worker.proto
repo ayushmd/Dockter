@@ -53,10 +53,16 @@ message AddTaskResponse {
 
 message TerminateTaskRequest{
     string Name = 1;
+    string ContainerID = 2;
+    string ImageName = 3;
 }
 
 message TerminateTaskResponse{
-    string success = 1;
+    bool success = 1;
+}
+
+message MetricRequest {
+    string ContainerID = 1;
 }
 
 message Tasks {
@@ -70,4 +76,5 @@ service WorkerService {
     rpc AddTask(Task) returns (AddTaskResponse) {}
     rpc TerminateTask(TerminateTaskRequest) returns (TerminateTaskResponse) {}
     rpc GetTasks(google.protobuf.Empty) returns (RunningTasks) {}
+    rpc GetTaskMetrics(MetricRequest) returns (HealthMetricResponse) {}
 }

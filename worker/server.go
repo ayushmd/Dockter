@@ -86,6 +86,32 @@ func (w *WorkerServer) AddTask(ctx context.Context, in *workerrpc.Task) (*worker
 	}, nil
 }
 
+func (w *WorkerServer) TerminateTask(ctx context.Context, in *workerrpc.TerminateTaskRequest) (*workerrpc.TerminateTaskResponse, error) {
+	err := Worker_.Obliterate(
+		in.GetName(),
+		in.GetContainerID(),
+		in.GetImageName(),
+	)
+	if err != nil {
+		return &workerrpc.TerminateTaskResponse{Success: false}, err
+	}
+	return &workerrpc.TerminateTaskResponse{
+		Success: true,
+	}, nil
+}
+
+func (w *WorkerServer) GetTaskMetrics(ctx context.Context, in *workerrpc.MetricRequest) (*workerrpc.HealthMetricResponse, error) {
+	basedHealth, err := internal.GetBasedMetrics(in.GetContainerID())
+	if err != nil {
+		return &workerrpc.HealthMetricResponse{}, err
+	}
+	return &workerrpc.HealthMetricResponse{
+		CpuPercent: basedHealth.CpuPercent,
+		MemUsage:   basedHealth.MemUsage,
+		DiskUsage:  basedHealth.DiskUsage,
+	}, nil
+}
+
 func NewWorkerServer(port int) {
 	// cache, err := lru.New[string, LocalTask](128)
 	// if err != nil {

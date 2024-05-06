@@ -191,6 +191,7 @@ func (b *Builder) BuildRaw(
 	)
 	pushTime := time.Now()
 	doc.TrashContainer(containerID)
+	doc.ClearImages(tag)
 	trashTime := time.Now()
 	log.Printf("%s ran:%s push:%s trash:%s\n", Name, runTime.Sub(start), pushTime.Sub(runTime), trashTime.Sub(pushTime))
 	return tag, basedMetrics, nil

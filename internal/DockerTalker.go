@@ -297,15 +297,16 @@ func (d *Dockter) TrashContainer(containerID string) error {
 	return nil
 }
 
-func (d *Dockter) ClearImages(imageName string) {
+func (d *Dockter) ClearImages(imageName string) error {
 	_, err := d.cli.ImageRemove(context.Background(), imageName, types.ImageRemoveOptions{})
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
-	_, err = d.cli.ImageRemove(context.Background(), imageName+":latest", types.ImageRemoveOptions{})
-	if err != nil {
-		log.Fatal(err)
-	}
+	// _, err = d.cli.ImageRemove(context.Background(), imageName+":latest", types.ImageRemoveOptions{})
+	// if err != nil {
+	// 	log.Fatal(err)
+	// }
+	return nil
 }
 
 func (d *Dockter) ExecuteCommand(containerID string, cmd []string) []string {

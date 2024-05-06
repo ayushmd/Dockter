@@ -20,12 +20,13 @@ import (
 const _ = grpc.SupportPackageIsVersion7
 
 const (
-	WorkerService_WhoAmI_FullMethodName        = "/WorkerService/WhoAmI"
-	WorkerService_HealthScore_FullMethodName   = "/WorkerService/HealthScore"
-	WorkerService_HealthMetrics_FullMethodName = "/WorkerService/HealthMetrics"
-	WorkerService_AddTask_FullMethodName       = "/WorkerService/AddTask"
-	WorkerService_TerminateTask_FullMethodName = "/WorkerService/TerminateTask"
-	WorkerService_GetTasks_FullMethodName      = "/WorkerService/GetTasks"
+	WorkerService_WhoAmI_FullMethodName         = "/WorkerService/WhoAmI"
+	WorkerService_HealthScore_FullMethodName    = "/WorkerService/HealthScore"
+	WorkerService_HealthMetrics_FullMethodName  = "/WorkerService/HealthMetrics"
+	WorkerService_AddTask_FullMethodName        = "/WorkerService/AddTask"
+	WorkerService_TerminateTask_FullMethodName  = "/WorkerService/TerminateTask"
+	WorkerService_GetTasks_FullMethodName       = "/WorkerService/GetTasks"
+	WorkerService_GetTaskMetrics_FullMethodName = "/WorkerService/GetTaskMetrics"
 )
 
 // WorkerServiceClient is the client API for WorkerService service.
@@ -38,6 +39,7 @@ type WorkerServiceClient interface {
 	AddTask(ctx context.Context, in *Task, opts ...grpc.CallOption) (*AddTaskResponse, error)
 	TerminateTask(ctx context.Context, in *TerminateTaskRequest, opts ...grpc.CallOption) (*TerminateTaskResponse, error)
 	GetTasks(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*RunningTasks, error)
+	GetTaskMetrics(ctx context.Context, in *MetricRequest, opts ...grpc.CallOption) (*HealthMetricResponse, error)
 }
 
 type workerServiceClient struct {
@@ -102,6 +104,15 @@ func (c *workerServiceClient) GetTasks(ctx context.Context, in *emptypb.Empty, o
 	return out, nil
 }
 
+func (c *workerServiceClient) GetTaskMetrics(ctx context.Context, in *MetricRequest, opts ...grpc.CallOption) (*HealthMetricResponse, error) {
+	out := new(HealthMetricResponse)
+	err := c.cc.Invoke(ctx, WorkerService_GetTaskMetrics_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // WorkerServiceServer is the server API for WorkerService service.
 // All implementations must embed UnimplementedWorkerServiceServer
 // for forward compatibility
@@ -112,6 +123,7 @@ type WorkerServiceServer interface {
 	AddTask(context.Context, *Task) (*AddTaskResponse, error)
 	TerminateTask(context.Context, *TerminateTaskRequest) (*TerminateTaskResponse, error)
 	GetTasks(context.Context, *emptypb.Empty) (*RunningTasks, error)
+	GetTaskMetrics(context.Context, *MetricRequest) (*HealthMetricResponse, error)
 	mustEmbedUnimplementedWorkerServiceServer()
 }
 
@@ -136,6 +148,9 @@ func (UnimplementedWorkerServiceServer) TerminateTask(context.Context, *Terminat
 }
 func (UnimplementedWorkerServiceServer) GetTasks(context.Context, *emptypb.Empty) (*RunningTasks, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetTasks not implemented")
+}
+func (UnimplementedWorkerServiceServer) GetTaskMetrics(context.Context, *MetricRequest) (*HealthMetricResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetTaskMetrics not implemented")
 }
 func (UnimplementedWorkerServiceServer) mustEmbedUnimplementedWorkerServiceServer() {}
 
@@ -258,6 +273,24 @@ func _WorkerService_GetTasks_Handler(srv interface{}, ctx context.Context, dec f
 	return interceptor(ctx, in, info, handler)
 }
 
+func _WorkerService_GetTaskMetrics_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(MetricRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(WorkerServiceServer).GetTaskMetrics(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: WorkerService_GetTaskMetrics_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(WorkerServiceServer).GetTaskMetrics(ctx, req.(*MetricRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // WorkerService_ServiceDesc is the grpc.ServiceDesc for WorkerService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -288,6 +321,10 @@ var WorkerService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetTasks",
 			Handler:    _WorkerService_GetTasks_Handler,
+		},
+		{
+			MethodName: "GetTaskMetrics",
+			Handler:    _WorkerService_GetTaskMetrics_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

@@ -152,6 +152,41 @@ func (m *Master) GetDnsRecord(id string) *sql.Row {
 	return row
 }
 
+type NoRecordError struct{}
+type TerminationError struct{}
+type NoMetricsError struct{}
+
+func (m *NoRecordError) Error() string {
+	return "No record found"
+}
+func (m *TerminationError) Error() string {
+	return "Task not terminated"
+}
+func (m *NoMetricsError) Error() string {
+	return "Metrics not found"
+}
+
+func (m *Master) GetRecord(name string) (*Task, error) {
+	task := &Task{}
+	ctask, ok := m.cacheDns.Get(name)
+	if ok {
+		task = &ctask
+	} else if m.cacheDns != nil {
+		row := Master_.GetDnsRecord(name)
+		var HostIp string
+		err := row.Scan(&task.Subdomain, &HostIp, &task.Hostport, &task.Runningport, &task.ImageName, &task.ContainerID, &task.Status)
+		if err != nil {
+			return nil, err
+		}
+		task.URL = url.URL{
+			Host: HostIp,
+		}
+	} else {
+		return nil, &NoRecordError{}
+	}
+	return task, nil
+}
+
 func (m *Master) RetryDed(serv *Backend) {
 	for retry_count := 0; retry_count < 3; retry_count++ {
 		if m.PoolServ(serv) != nil {
@@ -466,6 +501,50 @@ func (m *Master) Deploy(message kafka.Message) {
 	// 	}
 	// }
 	m.cacheDns.Add(configs.Name, task)
+}
+
+func (m *Master) TerminateTask(name string) error {
+	task, err := m.GetRecord(name)
+	if err != nil {
+		return err
+	}
+	conn, err := grpc.Dial(
+		task.URL.Host,
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
+	)
+	worker := workerrpc.NewWorkerServiceClient(conn)
+	resp, err := worker.TerminateTask(context.Background(), &workerrpc.TerminateTaskRequest{
+		Name:        task.Subdomain,
+		ContainerID: task.ContainerID,
+		ImageName:   task.ImageName,
+	})
+	if !resp.Success {
+		return &TerminationError{}
+	}
+	return nil
+}
+
+func (m *Master) TaskMetrics(name string) (*internal.ContainerBasedMetric, error) {
+	task, err := m.GetRecord(name)
+	if err != nil {
+		return nil, err
+	}
+	conn, err := grpc.Dial(
+		task.URL.Host,
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
+	)
+	worker := workerrpc.NewWorkerServiceClient(conn)
+	resp, err := worker.GetTaskMetrics(context.Background(), &workerrpc.MetricRequest{
+		ContainerID: task.ContainerID,
+	})
+	if err != nil {
+		return nil, &NoMetricsError{}
+	}
+	return &internal.ContainerBasedMetric{
+		CpuPercent: resp.CpuPercent,
+		MemUsage:   resp.MemUsage,
+		DiskUsage:  resp.DiskUsage,
+	}, nil
 }
 
 func (m *Master) KafkaHandler(message kafka.Message) {

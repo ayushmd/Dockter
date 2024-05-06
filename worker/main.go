@@ -139,3 +139,15 @@ func (w *Worker) JoinMaster(masterurl string) {
 	log.Printf("Joined Master Server(%s)\n", masterurl)
 	// do get response and hydrate Serverpool
 }
+
+func (w *Worker) Obliterate(name, containerID, imageName string) error {
+	doc := internal.NewDockter()
+	defer doc.Close()
+	if err := doc.TrashContainer(containerID); err != nil {
+		return err
+	}
+	if err := doc.ClearImages(imageName); err != nil {
+		return err
+	}
+	return nil
+}

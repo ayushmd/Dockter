@@ -8,7 +8,7 @@ import (
 	"net/http"
 )
 
-type StatusRequest struct {
+type NameRequest struct {
 	Name string `json:"name"`
 }
 
@@ -36,7 +36,7 @@ func LoadApi(router *Router) {
 	})
 
 	router.Post("/api/getStatus", func(w http.ResponseWriter, r *http.Request) {
-		var req StatusRequest
+		var req NameRequest
 		defer r.Body.Close()
 		body, _ := io.ReadAll(r.Body)
 		if err := json.Unmarshal(body, &req); err != nil {
@@ -57,6 +57,41 @@ func LoadApi(router *Router) {
 		}
 		w.WriteHeader(http.StatusOK)
 		fmt.Fprintf(w, Status)
+	})
+
+	router.Delete("/api/obliterate", func(w http.ResponseWriter, r *http.Request) {
+		var req NameRequest
+		defer r.Body.Close()
+		body, _ := io.ReadAll(r.Body)
+		if err := json.Unmarshal(body, &req); err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			fmt.Fprintf(w, "Error")
+		}
+		err := Master_.TerminateTask(req.Name)
+		if err != nil {
+			w.WriteHeader(http.StatusBadRequest)
+			fmt.Fprintf(w, "Could not remove the task")
+		}
+		w.WriteHeader(http.StatusOK)
+		fmt.Fprintf(w, "Obliterated")
+	})
+
+	router.Post("/api/metrics", func(w http.ResponseWriter, r *http.Request) {
+		var req NameRequest
+		defer r.Body.Close()
+		body, _ := io.ReadAll(r.Body)
+		if err := json.Unmarshal(body, &req); err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			fmt.Fprintf(w, "Error")
+		}
+		metrics, err := Master_.TaskMetrics(req.Name)
+		if err != nil {
+			w.WriteHeader(http.StatusBadRequest)
+			fmt.Fprintf(w, "Could not remove the task")
+		}
+		w.Header().Set("Content-Type", "application/json")
+		jsonResp, _ := json.Marshal(metrics)
+		w.Write(jsonResp)
 	})
 
 	router.Post("/api/buildraw", func(w http.ResponseWriter, r *http.Request) {
