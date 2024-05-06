@@ -152,6 +152,11 @@ func (m *Master) GetDnsRecord(id string) *sql.Row {
 	return row
 }
 
+func (m *Master) DeleteDnsRecord(id string) error {
+	_, err := m.dbDns.Exec("DELETE FROM dns WHERE Subdomain='?'", id)
+	return err
+}
+
 type NoRecordError struct{}
 type TerminationError struct{}
 type NoMetricsError struct{}
@@ -185,6 +190,11 @@ func (m *Master) GetRecord(name string) (*Task, error) {
 		return nil, &NoRecordError{}
 	}
 	return task, nil
+}
+
+func (m *Master) RemoveRecord(name string) {
+	m.cacheDns.Remove(name)
+	m.DeleteDnsRecord(name)
 }
 
 func (m *Master) RetryDed(serv *Backend) {
@@ -521,6 +531,7 @@ func (m *Master) TerminateTask(name string) error {
 	if !resp.Success {
 		return &TerminationError{}
 	}
+	m.RemoveRecord(task.Subdomain)
 	return nil
 }
 

@@ -52,11 +52,13 @@ func LoadApi(router *Router) {
 		var ContainerID string
 		var Status string
 		err := row.Scan(&Subdomain, &HostIp, &HostPort, &RunningPort, &ImageName, &ContainerID, &Status)
+		fmt.Println(Subdomain, " With Status ", Status)
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
+		} else {
+			w.WriteHeader(http.StatusOK)
+			fmt.Fprintf(w, Status)
 		}
-		w.WriteHeader(http.StatusOK)
-		fmt.Fprintf(w, Status)
 	})
 
 	router.Delete("/api/obliterate", func(w http.ResponseWriter, r *http.Request) {
