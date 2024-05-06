@@ -138,7 +138,8 @@ func DynamicRouter(w http.ResponseWriter, r *http.Request) {
 		var RunningPort string
 		var ImageName string
 		var ContainerID string
-		err := row.Scan(&Subdomain, &HostIp, &HostPort, &RunningPort, &ImageName, &ContainerID)
+		var Status string
+		err := row.Scan(&Subdomain, &HostIp, &HostPort, &RunningPort, &ImageName, &ContainerID, &Status)
 		if err == nil {
 			Hostip = HostIp
 			Hostport = HostPort
