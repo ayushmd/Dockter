@@ -54,6 +54,7 @@ func LoadApi(router *Router) {
 		err := row.Scan(&Subdomain, &HostIp, &HostPort, &RunningPort, &ImageName, &ContainerID, &Status)
 		fmt.Println(Subdomain, " With Status ", Status)
 		if err != nil {
+			fmt.Println(err)
 			w.WriteHeader(http.StatusInternalServerError)
 		} else {
 			w.WriteHeader(http.StatusOK)
