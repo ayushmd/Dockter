@@ -6,6 +6,7 @@ import (
 	"log"
 	"net/http"
 	"sync"
+	"time"
 )
 
 func makeRawRequest(name string) {
@@ -23,9 +24,9 @@ func makeRawRequest(name string) {
 	defer resp.Body.Close()
 }
 
-func makeImageRequest(name string) {
+func makeImageRequest(name, image, port string) {
 	url := "http://ayushd.cloud/api/deploy"
-	body := fmt.Sprintf(`{"name":"%s","dockerImage":"tyranthex/fyp_deps:node0","runningPort":"3000"}`, name)
+	body := fmt.Sprintf(`{"name":"%s","dockerImage":"%s","runningPort":"%s"}`, name, image, port)
 	// fmt.Println(body)
 	jsonStr := []byte(body)
 	req, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonStr))
@@ -38,15 +39,47 @@ func makeImageRequest(name string) {
 	defer resp.Body.Close()
 }
 
-func Client() {
-	wg := sync.WaitGroup{}
-	for i := 0; i < 30; i++ {
+func makeNgxRequest(wg *sync.WaitGroup) {
+	for i := 0; i < 1; i++ {
 		wg.Add(1)
-		name := fmt.Sprintf("node%d", i)
+		name := fmt.Sprintf("ngx%d", i)
 		go func(name string) {
 			defer wg.Done()
-			makeImageRequest(name)
+			makeImageRequest(name, "nginx", "80")
 		}(name)
+		time.Sleep(5 * time.Second)
 	}
+}
+
+func makeGrfRequest(wg *sync.WaitGroup) {
+	for i := 0; i < 1; i++ {
+		wg.Add(1)
+		name := fmt.Sprintf("grf%d", i)
+		go func(name string) {
+			defer wg.Done()
+			makeImageRequest(name, "grafana/grafana", "3000")
+		}(name)
+		time.Sleep(5 * time.Second)
+	}
+}
+
+func makeZkRequest(wg *sync.WaitGroup) {
+	for i := 0; i < 1; i++ {
+		wg.Add(1)
+		name := fmt.Sprintf("zk%d", i)
+		go func(name string) {
+			defer wg.Done()
+			makeImageRequest(name, "zookeeper", "2181")
+		}(name)
+		time.Sleep(5 * time.Second)
+	}
+}
+
+func Client() {
+	wg := &sync.WaitGroup{}
+	wg.Add(3)
+	go makeNgxRequest(wg)
+	go makeGrfRequest(wg)
+	go makeZkRequest(wg)
 	wg.Wait()
 }

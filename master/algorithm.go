@@ -13,11 +13,7 @@ func MasterPlanAlgo(ServerPool []*Backend, state string) *Backend {
 		var weight float64
 		if server.IsAlive && server.State == state {
 			initialWeight := GetWeight(server.Stats)
-			if server.CurrentConnect > 0 {
-				weight = initialWeight + 10*float64(server.CurrentConnect)
-			} else {
-				weight = initialWeight
-			}
+			weight = initialWeight + 30*float64(server.CurrentConnect)
 			if weight < minWeight {
 				minWeight = weight
 				selectedi = i
