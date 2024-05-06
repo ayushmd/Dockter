@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"log"
 	"net/url"
+	"strings"
 	"sync"
 	"time"
 
@@ -149,6 +150,12 @@ func (m *Master) UpdateDeployRecord(task Task) error {
 
 func (m *Master) GetDnsRecord(id string) *sql.Row {
 	query := fmt.Sprintf("SELECT * FROM dns WHERE Subdomain='%s'", id)
+	row := m.dbDns.QueryRow(query)
+	return row
+}
+
+func (m *Master) GetDnsStatus(id string) *sql.Row {
+	query := fmt.Sprintf("SELECT Status FROM dns WHERE Subdomain='%s'", id)
 	row := m.dbDns.QueryRow(query)
 	return row
 }
@@ -359,6 +366,7 @@ func (m *Master) BuildRaw(message kafka.Message) {
 	if len(m.ServerPool) == 0 {
 		return
 	}
+	configs.Name = strings.ToLower(configs.Name)
 	go func() {
 		err := m.AddBuilding(configs.Name, configs.RunningPort)
 		if err != nil {
