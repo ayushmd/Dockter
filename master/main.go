@@ -281,7 +281,9 @@ func (m *Master) Recovery(serv *Backend) {
 		var RunningPort sql.NullString
 		var ImageName sql.NullString
 		var ContainerID sql.NullString
-		err = rows.Scan(&Subdomain, &HostIp, &HostPort, &RunningPort, &ImageName, &ContainerID)
+		var Type sql.NullString
+		var Status sql.NullString
+		err = rows.Scan(&Subdomain, &HostIp, &HostPort, &RunningPort, &ImageName, &ContainerID, &Status, &Type)
 		// task := Task
 		sendDeploy, err := json.Marshal(TaskImageRequest{
 			Name:        Subdomain.String,
