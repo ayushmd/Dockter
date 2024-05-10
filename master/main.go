@@ -226,15 +226,32 @@ func (m *Master) GetRecord(name string) (*Task, error) {
 		task = &ctask
 	} else if m.cacheDns != nil {
 		row := Master_.GetDnsRecord(name)
-		var HostIp string
-		err := row.Scan(&task.Subdomain, &HostIp, &task.Hostport, &task.Runningport, &task.ImageName, &task.ContainerID, &task.Status, &task.Type)
+		var Subdomain sql.NullString
+		var HostIp sql.NullString
+		var Hostport sql.NullString
+		var Runningport sql.NullString
+		var ImageName sql.NullString
+		var ContainerID sql.NullString
+		var Status sql.NullString
+		var Type sql.NullString
+		err := row.Scan(&Subdomain, &HostIp, &Hostport, &Runningport, &ImageName, &ContainerID, &Status, &Type)
 		if err != nil {
 			return nil, err
 		}
 		fmt.Println(HostIp)
-		task.URL = url.URL{
-			Host: HostIp,
+		newTask := &Task{
+			Subdomain: Subdomain.String,
+			URL: url.URL{
+				Host: HostIp.String,
+			},
+			Hostport:    Hostport.String,
+			Runningport: Runningport.String,
+			ImageName:   ImageName.String,
+			ContainerID: ContainerID.String,
+			Status:      Status.String,
+			Type:        Type.String,
 		}
+		task = newTask
 	} else {
 		return nil, &NoRecordError{}
 	}
