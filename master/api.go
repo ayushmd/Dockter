@@ -132,4 +132,20 @@ func LoadApi(router *Router) {
 		w.WriteHeader(http.StatusOK)
 		fmt.Fprintf(w, "Added to queue")
 	})
+
+	router.Post("/api/static", func(w http.ResponseWriter, r *http.Request) {
+		err := r.ParseMultipartForm(10 << 20)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+		domain := r.MultipartForm.Value["name"][0]
+		files := r.MultipartForm.File["files"]
+		err = Master_.DeployStatic(domain, files)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+		fmt.Fprintf(w, "Files Uploaded Successfully!")
+	})
 }

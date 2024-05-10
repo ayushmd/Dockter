@@ -2,9 +2,15 @@ package master
 
 import (
 	"fmt"
+	"io"
 	"log"
 	"net/http"
+	"net/url"
+	"os"
 	"strings"
+
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/service/s3"
 )
 
 type Router struct {
@@ -114,44 +120,112 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 	// }
 	log.Println(r.Method, r.Host, r.URL.Host)
 	if HasSubdomain(r.Host) {
-		DynamicRouter(w, r)
+		DynamicRouter(w, r, r.Host)
+	} else if HasSubdomain(r.Referer()) {
+		DynamicRouter(w, r, r.Referer())
 	} else {
 		router.Run(w, r)
 	}
 }
 
-func DynamicRouter(w http.ResponseWriter, r *http.Request) {
-	subdo := strings.Split(r.Host, ".")[0]
-	log.Println("Request to subdomain ", subdo)
-	task, ok := Master_.cacheDns.Get(subdo)
-	var Hostip string = ""
-	var Hostport string = ""
-	if ok {
-		Hostip = strings.Split(task.URL.Host, ":")[0]
-		Hostport = task.Hostport
+func ProxyRequest(w http.ResponseWriter, r *http.Request, targetURL *url.URL) {
+	// Create a new HTTP request with the same method, URL, and body as the original request
+	// targetURL := r.URL
+	proxyReq, err := http.NewRequest(r.Method, targetURL.String(), r.Body)
+	if err != nil {
+		http.Error(w, "Error creating proxy request", http.StatusInternalServerError)
+		return
+	}
 
-	} else if Master_.dbDns != nil {
-		row := Master_.GetDnsRecord(subdo)
-		var Subdomain string
-		var HostIp string
-		var HostPort string
-		var RunningPort string
-		var ImageName string
-		var ContainerID string
-		var Status string
-		err := row.Scan(&Subdomain, &HostIp, &HostPort, &RunningPort, &ImageName, &ContainerID, &Status)
-		if err == nil {
-			Hostip = HostIp
-			Hostport = HostPort
+	// Copy the headers from the original request to the proxy request
+	for name, values := range r.Header {
+		for _, value := range values {
+			proxyReq.Header.Add(name, value)
 		}
 	}
-	if Hostip != "" && Hostport != "" {
-		deps := fmt.Sprintf("http://%s:%s", Hostip, Hostport)
-		log.Printf("Redirecting %s to %s", r.Host, deps)
-		http.Redirect(w, r, deps, http.StatusMovedPermanently)
-	} else {
+
+	// Send the proxy request using the custom transport
+	resp, err := http.DefaultTransport.RoundTrip(proxyReq)
+	if err != nil {
+		http.Error(w, "Error sending proxy request", http.StatusInternalServerError)
+		return
+	}
+	defer resp.Body.Close()
+
+	// Copy the headers from the proxy response to the original response
+	for name, values := range resp.Header {
+		for _, value := range values {
+			w.Header().Add(name, value)
+		}
+	}
+
+	// Set the status code of the original response to the status code of the proxy response
+	w.WriteHeader(resp.StatusCode)
+
+	// Copy the body of the proxy response to the original response
+	io.Copy(w, resp.Body)
+}
+
+func ServeStaticFiles(w http.ResponseWriter, r *http.Request, s3pth string) {
+	svc := NewS3()
+	input := &s3.HeadObjectInput{
+		Bucket: aws.String(os.Getenv("BUCKET_NAME")),
+		Key:    aws.String(s3pth),
+	}
+	metadata, err := svc.HeadObject(input)
+	if err != nil {
+		// Object doesn't exist or error occurred
+		http.NotFound(w, r)
+		return
+	}
+	resp, err := svc.GetObject(&s3.GetObjectInput{
+		Bucket: aws.String(os.Getenv("BUCKET_NAME")),
+		Key:    aws.String(s3pth),
+	})
+	if err != nil {
+		// Error occurred while retrieving object
+		http.Error(w, "Failed to retrieve HTML page", http.StatusInternalServerError)
+		return
+	}
+	defer resp.Body.Close()
+
+	// Set the appropriate content type for HTML
+	w.Header().Set("Content-Type", *metadata.ContentType)
+
+	// Copy the object's content to the response writer
+	_, err = io.Copy(w, resp.Body)
+	if err != nil {
+		// Error occurred while copying object content
+		http.Error(w, "Failed to serve HTML page", http.StatusInternalServerError)
+		return
+	}
+}
+
+func DynamicRouter(w http.ResponseWriter, r *http.Request, source string) {
+	subdo := strings.Split(source, ".")[0]
+	log.Println("Request to subdomain ", subdo)
+	task, err := Master_.GetRecord(subdo)
+	if err != nil {
 		w.WriteHeader(http.StatusNotFound)
 		fmt.Fprintf(w, "Page not found")
+	}
+	if task.Type == TYPE_WEBSERVICE {
+		Hostip := strings.Split(task.URL.Host, ":")[0]
+		deps := fmt.Sprintf("http://%s:%s", Hostip, task.Hostport)
+		log.Printf("Redirecting %s to %s", r.Host, deps)
+		u, _ := url.ParseRequestURI(deps)
+		ProxyRequest(w, r, u)
+		// http.Redirect(w, r, deps, http.StatusMovedPermanently)
+	} else if task.Type == TYPE_STATIC {
+		var s3pth string = ""
+		if r.URL.Path == "" {
+			s3pth = task.ContainerID + "index.html"
+		} else {
+			if r.Referer() != "" {
+				s3pth = task.ContainerID + r.URL.Path
+			}
+		}
+		ServeStaticFiles(w, r, s3pth)
 	}
 }
 

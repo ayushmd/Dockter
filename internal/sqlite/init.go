@@ -4,8 +4,7 @@ import (
 	"database/sql"
 	"os"
 	"path/filepath"
-
-	_ "github.com/mattn/go-sqlite3"
+	// _ "github.com/mattn/go-sqlite3"
 )
 
 var dbDir string = ""
@@ -37,7 +36,7 @@ func CreateConn() (*sql.DB, error) {
 	if err != nil {
 		return nil, err
 	}
-	_, err = db.Exec("CREATE TABLE IF NOT EXISTS dns (Subdomain TEXT PRIMARY KEY, HostIp TEXT, HostPort TEXT, RunningPort TEXT, ImageName TEXT, ContainerID TEXT, Status TEXT)")
+	_, err = db.Exec("CREATE TABLE IF NOT EXISTS dns (Subdomain TEXT PRIMARY KEY, HostIp TEXT, HostPort TEXT, RunningPort TEXT, ImageName TEXT, ContainerID TEXT, Status TEXT, Type TEXT)")
 	if err != nil {
 		return nil, err
 	}

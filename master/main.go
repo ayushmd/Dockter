@@ -6,14 +6,23 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"mime/multipart"
+	"net/textproto"
 	"net/url"
+	"os"
 	"strings"
 	"sync"
 	"time"
 
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/credentials"
+	"github.com/aws/aws-sdk-go/aws/endpoints"
+	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/ayush18023/Load_balancer_Fyp/internal"
 	"github.com/ayush18023/Load_balancer_Fyp/rpc/builderrpc"
 	"github.com/ayush18023/Load_balancer_Fyp/rpc/workerrpc"
+	"github.com/google/uuid"
 	lru "github.com/hashicorp/golang-lru/v2"
 	"github.com/segmentio/kafka-go"
 	"google.golang.org/grpc"
@@ -34,6 +43,9 @@ type Backend struct {
 	//Algo part
 }
 
+const TYPE_WEBSERVICE = "Web Service"
+const TYPE_STATIC = "Static"
+
 type Task struct {
 	Subdomain   string //a unique id
 	URL         url.URL
@@ -42,6 +54,7 @@ type Task struct {
 	ImageName   string
 	ContainerID string
 	Status      string
+	Type        string
 }
 
 type TaskRawRequest struct {
@@ -130,7 +143,7 @@ func (m *Master) AddDnsRecord(task Task) error {
 }
 
 func (m *Master) AddBuilding(sudomain, runningPort string) error {
-	query := fmt.Sprintf("INSERT INTO dns (Subdomain, RunningPort, Status) VALUES ('%s','%s','%s');", sudomain, runningPort, "Building")
+	query := fmt.Sprintf("INSERT INTO dns (Subdomain, RunningPort, Status, Type) VALUES ('%s','%s','%s','%s');", sudomain, runningPort, "Building", TYPE_WEBSERVICE)
 	_, err := m.dbDns.Exec(query)
 	return err
 }
@@ -139,6 +152,21 @@ func (m *Master) UpdateDnsStatus(domain, status string) error {
 	query := fmt.Sprintf("UPDATE dns SET Status = '%s' WHERE Subdomain = '%s';", status, domain)
 	_, err := m.dbDns.Exec(query)
 	return err
+}
+
+func (m *Master) DeployDnsRecord(domain, runningPort string) error {
+	row := m.PingRecord(domain)
+	var subdomain string
+	err := row.Scan(&subdomain)
+	if err == sql.ErrNoRows {
+		query := fmt.Sprintf("INSERT INTO dns (Subdomain, RunningPort, Status, Type) VALUES ('%s','%s','%s','%s');", domain, runningPort, "Deploying", TYPE_WEBSERVICE)
+		_, err := m.dbDns.Exec(query)
+		return err
+	} else {
+		query := fmt.Sprintf("UPDATE dns SET Status = '%s' WHERE Subdomain = '%s';", "Deploying", domain)
+		_, err := m.dbDns.Exec(query)
+		return err
+	}
 }
 
 func (m *Master) UpdateDeployRecord(task Task) error {
@@ -154,6 +182,12 @@ func (m *Master) GetDnsRecord(id string) *sql.Row {
 	return row
 }
 
+func (m *Master) PingRecord(id string) *sql.Row {
+	query := fmt.Sprintf("SELECT Subdomain FROM dns WHERE Subdomain='%s'", id)
+	row := m.dbDns.QueryRow(query)
+	return row
+}
+
 func (m *Master) GetDnsStatus(id string) *sql.Row {
 	query := fmt.Sprintf("SELECT Status FROM dns WHERE Subdomain='%s'", id)
 	row := m.dbDns.QueryRow(query)
@@ -162,6 +196,12 @@ func (m *Master) GetDnsStatus(id string) *sql.Row {
 
 func (m *Master) DeleteDnsRecord(id string) error {
 	_, err := m.dbDns.Exec("DELETE FROM dns WHERE Subdomain='?'", id)
+	return err
+}
+
+func (m *Master) DeployStaticRecord(domain, id string) error {
+	query := fmt.Sprintf("INSERT INTO dns (Subdomain, ContainerID, Status, Type) VALUES ('%s','%s','%s','%s');", domain, id, "Deployed", TYPE_STATIC)
+	_, err := m.dbDns.Exec(query)
 	return err
 }
 
@@ -467,7 +507,7 @@ func (m *Master) Deploy(message kafka.Message) {
 		return
 	}
 	go func() {
-		err := m.UpdateDnsStatus(configs.Name, "Deploying")
+		err := m.DeployDnsRecord(configs.Name, configs.RunningPort)
 		if err != nil {
 			fmt.Println("Sqlite error ", err)
 		}
@@ -506,6 +546,8 @@ func (m *Master) Deploy(message kafka.Message) {
 		ImageName:   configs.DockerImage,
 		Hostport:    buildRawResponse.GetHostPort(),
 		ContainerID: buildRawResponse.GetContainerID(),
+		Status:      "Deployed",
+		Type:        TYPE_WEBSERVICE,
 	}
 	go func() {
 		err := m.UpdateDeployRecord(task)
@@ -565,6 +607,67 @@ func (m *Master) TaskMetrics(name string) (*internal.ContainerBasedMetric, error
 		MemUsage:   resp.MemUsage,
 		DiskUsage:  resp.DiskUsage,
 	}, nil
+}
+
+func GetFilePathAndMeta(fhsHeader textproto.MIMEHeader) (string, string) {
+	var filename string
+	contentDisp := fhsHeader.Get("Content-Disposition")
+	keys := strings.Split(contentDisp, ";")
+	filename = strings.Split(keys[2], "=")[1]
+	return strings.ReplaceAll(filename, "\"", ""), fhsHeader.Get("Content-Type")
+}
+
+func GetS3Path(id, path string) string {
+	oldName := strings.Split(path, "/")
+	oldName[0] = id
+	return strings.Join(oldName, "/")
+}
+
+func NewS3() *s3.S3 {
+	sess := session.Must(session.NewSession(&aws.Config{
+		Region: aws.String(endpoints.ApSouth1RegionID),
+	}))
+	// creds := stscreds.NewCredentials(sess, "arn:aws:s3:::66049c07d9e8546699fe0872fd32d8f6")
+	return s3.New(sess, &aws.Config{
+		Credentials: credentials.NewStaticCredentials(
+			os.Getenv("AWS_ID"),
+			os.Getenv("AWS_SECRET"),
+			"",
+		),
+	})
+}
+
+func (m *Master) DeployStatic(domain string, files []*multipart.FileHeader) error {
+	id := uuid.New().String()
+	for _, fhs := range files {
+		file, err := fhs.Open()
+		if err != nil {
+			return err
+		}
+		filePath, metaType := GetFilePathAndMeta(fhs.Header)
+		s3path := GetS3Path(id, filePath)
+		bucket := NewS3()
+		_, err = bucket.PutObject(&s3.PutObjectInput{
+			Bucket:      aws.String(os.Getenv("BUCKET_NAME")),
+			Key:         aws.String(s3path),
+			Body:        file,
+			ContentType: &metaType,
+		})
+		fmt.Println(s3path)
+		if err != nil {
+			return err
+		}
+		// handleFile(w, file, filename)
+		file.Close()
+	}
+	m.cacheDns.Add(domain, Task{
+		Subdomain:   domain,
+		ContainerID: id,
+		Status:      "Deployed",
+		Type:        TYPE_STATIC,
+	})
+	m.DeployStaticRecord(domain, id)
+	return nil
 }
 
 func (m *Master) KafkaHandler(message kafka.Message) {
