@@ -667,7 +667,8 @@ func (m *Master) DeployStatic(domain string, files []*multipart.FileHeader) erro
 		Status:      "Deployed",
 		Type:        TYPE_STATIC,
 	})
-	m.DeployStaticRecord(domain, id)
+	err := m.DeployStaticRecord(domain, id)
+	fmt.Println("Static error:", err)
 	return nil
 }
 
