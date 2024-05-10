@@ -182,6 +182,11 @@ func (m *Master) GetDnsRecord(id string) *sql.Row {
 	return row
 }
 
+func (m *Master) GetDnsRecordByNode(ip string) (*sql.Rows, error) {
+	query := fmt.Sprintf("SELECT * FROM dns WHERE HostIp='%s'", ip)
+	return m.dbDns.Query(query)
+}
+
 func (m *Master) PingRecord(id string) *sql.Row {
 	query := fmt.Sprintf("SELECT Subdomain FROM dns WHERE Subdomain='%s'", id)
 	row := m.dbDns.QueryRow(query)
@@ -263,13 +268,40 @@ func (m *Master) RemoveRecord(name string) {
 	m.DeleteDnsRecord(name)
 }
 
+func (m *Master) Recovery(serv *Backend) {
+	rows, err := m.GetDnsRecordByNode(serv.URL.Host)
+	if err != nil {
+		fmt.Println(err)
+	}
+	for rows.Next() {
+		var Subdomain sql.NullString
+		var HostIp sql.NullString
+		var HostPort sql.NullString
+		var RunningPort sql.NullString
+		var ImageName sql.NullString
+		var ContainerID sql.NullString
+		err = rows.Scan(&Subdomain, &HostIp, &HostPort, &RunningPort, &ImageName, &ContainerID)
+		// task := Task
+		sendDeploy, err := json.Marshal(TaskImageRequest{
+			Name:        Subdomain.String,
+			DockerImage: ImageName.String,
+			RunningPort: RunningPort.String,
+		})
+		if err != nil {
+			fmt.Println(err)
+		}
+		m.AddTask("DEPLOY", sendDeploy)
+	}
+}
+
 func (m *Master) RetryDed(serv *Backend) {
 	for retry_count := 0; retry_count < 3; retry_count++ {
-		if m.PoolServ(serv) != nil {
+		if m.PoolServ(serv) == nil {
 			return
 		}
 		time.Sleep(2 * time.Second)
 	}
+	m.Recovery(serv)
 }
 
 func (m *Master) PoolServ(serv *Backend) error {
