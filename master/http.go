@@ -218,13 +218,18 @@ func DynamicRouter(w http.ResponseWriter, r *http.Request, source string) {
 		ProxyRequest(w, r, u)
 		// http.Redirect(w, r, deps, http.StatusMovedPermanently)
 	} else if task.Type == TYPE_STATIC {
-		var s3pth string = ""
-		if r.URL.Path == "" {
-			s3pth = task.ContainerID + "index.html"
+		var s3pth string = task.ContainerID
+		// if r.Host.Path == "" {
+		// 	s3pth = task.ContainerID + "index.html"
+		// } else {
+		// 	if r.Referer() != "" {
+		// 		s3pth = task.ContainerID + r.URL.Path
+		// 	}
+		// }
+		if r.Referer() != "" {
+			s3pth += r.URL.Path
 		} else {
-			if r.Referer() != "" {
-				s3pth = task.ContainerID + r.URL.Path
-			}
+			s3pth += "index.html"
 		}
 		ServeStaticFiles(w, r, s3pth)
 	}
