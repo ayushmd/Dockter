@@ -229,7 +229,7 @@ func DynamicRouter(w http.ResponseWriter, r *http.Request, source string) {
 		if r.Referer() != "" {
 			s3pth += r.URL.Path
 		} else {
-			s3pth += "index.html"
+			s3pth += "/index.html"
 		}
 		ServeStaticFiles(w, r, s3pth)
 	}
