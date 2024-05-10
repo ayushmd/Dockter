@@ -227,7 +227,7 @@ func (m *Master) GetRecord(name string) (*Task, error) {
 	} else if m.cacheDns != nil {
 		row := Master_.GetDnsRecord(name)
 		var HostIp string
-		err := row.Scan(&task.Subdomain, &HostIp, &task.Hostport, &task.Runningport, &task.ImageName, &task.ContainerID, &task.Status)
+		err := row.Scan(&task.Subdomain, &HostIp, &task.Hostport, &task.Runningport, &task.ImageName, &task.ContainerID, &task.Status, &task.Type)
 		if err != nil {
 			return nil, err
 		}
