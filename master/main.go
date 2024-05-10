@@ -269,6 +269,7 @@ func (m *Master) RemoveRecord(name string) {
 }
 
 func (m *Master) Recovery(serv *Backend) {
+	log.Println("Initiating Recovery for :", serv.URL.Host)
 	rows, err := m.GetDnsRecordByNode(serv.URL.Host)
 	if err != nil {
 		fmt.Println(err)
