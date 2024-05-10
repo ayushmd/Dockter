@@ -231,6 +231,7 @@ func (m *Master) GetRecord(name string) (*Task, error) {
 		if err != nil {
 			return nil, err
 		}
+		fmt.Println(HostIp)
 		task.URL = url.URL{
 			Host: HostIp,
 		}

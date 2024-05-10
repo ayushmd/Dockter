@@ -205,8 +205,8 @@ func DynamicRouter(w http.ResponseWriter, r *http.Request, source string) {
 	subdo := strings.Split(source, ".")[0]
 	log.Println("Request to subdomain ", subdo)
 	task, err := Master_.GetRecord(subdo)
-	fmt.Println(task)
-	if err != nil {
+	fmt.Println(task, err)
+	if err != nil || task == nil {
 		w.WriteHeader(http.StatusNotFound)
 		fmt.Fprintf(w, "Page not found")
 	}
