@@ -1,0 +1,35 @@
+syntax = "proto3";
+
+import "google/protobuf/empty.proto";
+
+option go_package = "github.com/ayush18023/Load_balancer_Fyp/rpc/carpc";
+
+message CAWhoAmIResponse{
+    string State = 1;
+}
+
+message CAHealthMetricResponse{
+    int64 CpuPercent  = 1;
+    int32 MemUsage  = 2;
+    int32 TotalMem  = 3;
+    float MemUsedPercent  = 4;
+    int64 DiskUsage = 5;
+    int64 TotalDisk = 6;
+    float DiskUsagePercent = 7;
+}
+
+message KeyPairRequest{
+    string algorithm = 1;
+    string keyname = 2;
+}
+
+message KeyPairs{
+    string publicKey = 1;
+    string privateKey = 2;
+}
+
+service CAService {
+    rpc WhoAmI(google.protobuf.Empty) returns (CAWhoAmIResponse) {}
+    rpc HealthMetrics(google.protobuf.Empty) returns (CAHealthMetricResponse) {}
+    rpc GenerateSSHKeyPair(KeyPairRequest) returns (KeyPairs) {}
+}

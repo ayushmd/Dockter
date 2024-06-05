@@ -26,6 +26,7 @@ message Task {
     string Name        = 1;
     string ImageName   = 2;
     string RunningPort = 3;
+    bool hasSSH = 4;
 }
 
 message Port {

@@ -8,6 +8,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/ayush18023/Load_balancer_Fyp/ca"
 	"github.com/ayush18023/Load_balancer_Fyp/internal"
 	"github.com/ayush18023/Load_balancer_Fyp/internal/auth"
 	"github.com/ayush18023/Load_balancer_Fyp/internal/sqlite"
@@ -92,4 +93,33 @@ func NewMasterServer(port int) {
 	}()
 	fmt.Println("Background workers started")
 	waitgrp.Wait()
+	BootMasterServices()
+}
+
+func StartCAService(wg *sync.WaitGroup) {
+	defer wg.Done()
+	var port string = fmt.Sprintf(":%d", 2222)
+	var lis net.Listener
+	lis, err := net.Listen("tcp", port)
+	if err != nil {
+		fmt.Println("CA Service not started")
+	}
+	ins := ca.NewCAInstance()
+	err = ins.Serve(lis)
+	if err != nil {
+		fmt.Println("CA Service not started")
+	}
+	Master_.JoinService(port, "CA")
+}
+
+func BootMasterServices() {
+	ms := []string{"CA"} //read from config
+	wg := &sync.WaitGroup{}
+	for _, service := range ms {
+		wg.Add(1)
+		if service == "CA" {
+			go StartCAService(wg)
+		}
+	}
+	wg.Wait()
 }

@@ -15,12 +15,11 @@ import (
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/credentials"
-	"github.com/aws/aws-sdk-go/aws/endpoints"
-	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/ayush18023/Load_balancer_Fyp/internal"
+	cloud_aws "github.com/ayush18023/Load_balancer_Fyp/internal/aws"
 	"github.com/ayush18023/Load_balancer_Fyp/rpc/builderrpc"
+	"github.com/ayush18023/Load_balancer_Fyp/rpc/carpc"
 	"github.com/ayush18023/Load_balancer_Fyp/rpc/workerrpc"
 	"github.com/google/uuid"
 	lru "github.com/hashicorp/golang-lru/v2"
@@ -40,6 +39,13 @@ type Backend struct {
 	Rtt             time.Duration                 `json:"rtt"`
 	NumofContainers int                           `json:"numofContainers"`
 	mux             sync.RWMutex
+	//Algo part
+}
+
+type Service struct {
+	URL     url.URL `json:"url"`
+	State   string  `json:"state"`
+	IsAlive bool    `json:"isalive"`
 	//Algo part
 }
 
@@ -65,6 +71,7 @@ type TaskRawRequest struct {
 	StartCmd    string            `json:"startCmd"`
 	RuntimeEnv  string            `json:"runtimeEnv"`
 	RunningPort string            `json:"runningPort"`
+	KeyGroup    string            `json:"keyGroup"`
 	EnvVars     map[string]string `json:"envVars"`
 } // BUILD DEPLOY
 
@@ -79,6 +86,7 @@ type TaskImageRequest struct {
 	Name        string `json:"name"`
 	DockerImage string `json:"dockerImage"`
 	RunningPort string `json:"runningPort"`
+	hasSSH      bool   `json:"hasSSH"`
 	BasedMetric internal.ContainerBasedMetric
 } // DEPLOY
 
@@ -121,11 +129,12 @@ const (
 )
 
 type Master struct {
-	kwriter    *internal.KafkaWriter
-	ServerPool []*Backend
-	dnsStatus  status
-	dbDns      *sql.DB
-	cacheDns   *lru.Cache[string, Task]
+	kwriter     *internal.KafkaWriter
+	ServerPool  []*Backend
+	ServicePool []*Service
+	dnsStatus   status
+	dbDns       *sql.DB
+	cacheDns    *lru.Cache[string, Task]
 }
 
 var Master_ *Master = &Master{}
@@ -434,6 +443,52 @@ func (m *Master) Join(peerurl, peerState string, HealthStats internal.ContainerB
 	go Handshake(peerurl)
 }
 
+func (m *Master) JoinService(peerurl, peerstate string) {
+	hasJoined := false
+	for _, serv := range m.ServicePool {
+		if serv.URL.Host == peerurl {
+			if serv.State != peerstate {
+				serv.State = peerstate
+			}
+			hasJoined = true
+			serv.IsAlive = true
+			break
+		}
+	}
+	if !hasJoined {
+		m.ServicePool = append(m.ServicePool, &Service{
+			URL: url.URL{
+				Host: peerurl,
+			},
+			State:   peerstate,
+			IsAlive: true,
+		})
+	}
+}
+
+func (m *Master) GetSSHKeys(algo, keyname string) string {
+	for _, service := range m.ServicePool {
+		if service.State == "CA" {
+			var err error = nil
+			conn, err := grpc.Dial(
+				service.URL.Host,
+				grpc.WithTransportCredentials(insecure.NewCredentials()),
+			)
+			ca := carpc.NewCAServiceClient(conn)
+			resp, err := ca.GenerateSSHKeyPair(context.Background(), &carpc.KeyPairRequest{
+				Algorithm: algo,
+				Keyname:   keyname,
+			})
+			if err == nil {
+				break
+			} else {
+				return resp.PrivateKey
+			}
+		}
+	}
+	return ""
+}
+
 func (m *Master) GetServerPoolHandler() ([]byte, error) {
 	marshalData, err := json.Marshal(m.ServerPool)
 	if err != nil {
@@ -486,6 +541,7 @@ func (m *Master) BuildRaw(message kafka.Message) {
 			StartCmd:    configs.StartCmd,
 			RuntimeEnv:  configs.RuntimeEnv,
 			RunningPort: configs.RunningPort,
+			KeyGroup:    configs.KeyGroup,
 			EnvVars:     configs.EnvVars,
 		},
 	)
@@ -493,7 +549,7 @@ func (m *Master) BuildRaw(message kafka.Message) {
 	if err != nil {
 		panic(err)
 	}
-	sendDeploy, err := json.Marshal(TaskImageRequest{
+	req := TaskImageRequest{
 		Name:        buildRawResponse.GetName(),
 		DockerImage: buildRawResponse.GetImageName(),
 		RunningPort: buildRawResponse.GetRunningPort(),
@@ -502,7 +558,11 @@ func (m *Master) BuildRaw(message kafka.Message) {
 			MemUsage:   buildRawResponse.BasedMetrics.MemUsage,
 			DiskUsage:  buildRawResponse.BasedMetrics.DiskUsage,
 		},
-	})
+	}
+	if configs.KeyGroup != "" {
+		req.hasSSH = true
+	}
+	sendDeploy, err := json.Marshal(req)
 	if err != nil {
 		panic("Couldnt marshal 2")
 	}
@@ -583,6 +643,7 @@ func (m *Master) Deploy(message kafka.Message) {
 			Name:        configs.Name,
 			ImageName:   configs.DockerImage,
 			RunningPort: configs.RunningPort,
+			HasSSH:      configs.hasSSH,
 		},
 	)
 	backend.ResConn()
@@ -676,20 +737,6 @@ func GetS3Path(id, path string) string {
 	return strings.Join(oldName, "/")
 }
 
-func NewS3() *s3.S3 {
-	sess := session.Must(session.NewSession(&aws.Config{
-		Region: aws.String(endpoints.ApSouth1RegionID),
-	}))
-	// creds := stscreds.NewCredentials(sess, "arn:aws:s3:::66049c07d9e8546699fe0872fd32d8f6")
-	return s3.New(sess, &aws.Config{
-		Credentials: credentials.NewStaticCredentials(
-			os.Getenv("AWS_ID"),
-			os.Getenv("AWS_SECRET"),
-			"",
-		),
-	})
-}
-
 func (m *Master) DeployStatic(domain string, files []*multipart.FileHeader) error {
 	id := uuid.New().String()
 	for _, fhs := range files {
@@ -699,7 +746,7 @@ func (m *Master) DeployStatic(domain string, files []*multipart.FileHeader) erro
 		}
 		filePath, metaType := GetFilePathAndMeta(fhs.Header)
 		s3path := GetS3Path(id, filePath)
-		bucket := NewS3()
+		bucket := cloud_aws.NewS3()
 		_, err = bucket.PutObject(&s3.PutObjectInput{
 			Bucket:      aws.String(os.Getenv("BUCKET_NAME")),
 			Key:         aws.String(s3path),

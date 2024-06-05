@@ -49,6 +49,7 @@ func (w *BuilderServer) BuildRaw(ctx context.Context, in *builderrpc.BuildRawReq
 		in.GetStartCmd(),
 		in.GetRuntimeEnv(),
 		in.GetRunningPort(),
+		in.GetKeyGroup(),
 		in.GetEnvVars(),
 	)
 	if err != nil {

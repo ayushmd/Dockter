@@ -12,6 +12,16 @@ type NameRequest struct {
 	Name string `json:"name"`
 }
 
+type KeyPairReq struct {
+	KeyName   string `json:"keyName"`
+	Algorithm string `json:"algorithm"`
+}
+type KeyPairResp struct {
+	KeyName    string `json:"keyName"`
+	PrivateKey string `json:"privateKey"`
+	PublicKey  string `json:"publicKey"`
+}
+
 func LoadApi(router *Router) {
 	router.Get("/ping", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
@@ -147,5 +157,22 @@ func LoadApi(router *Router) {
 			return
 		}
 		fmt.Fprintf(w, "Files Uploaded Successfully!")
+	})
+
+	router.Post("/api/keypair", func(w http.ResponseWriter, r *http.Request) {
+		var req KeyPairReq
+		defer r.Body.Close()
+		body, _ := io.ReadAll(r.Body)
+		if err := json.Unmarshal(body, &req); err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			fmt.Fprintf(w, "Error")
+		}
+		pk := Master_.GetSSHKeys(req.Algorithm, req.KeyName)
+		w.Header().Set("Content-Type", "application/json")
+		jsonResp, _ := json.Marshal(KeyPairResp{
+			PrivateKey: pk,
+			KeyName:    req.KeyName,
+		})
+		w.Write(jsonResp)
 	})
 }

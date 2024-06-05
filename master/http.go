@@ -11,6 +11,7 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/s3"
+	cloud_aws "github.com/ayush18023/Load_balancer_Fyp/internal/aws"
 )
 
 type Router struct {
@@ -167,7 +168,7 @@ func ProxyRequest(w http.ResponseWriter, r *http.Request, targetURL *url.URL) {
 }
 
 func ServeStaticFiles(w http.ResponseWriter, r *http.Request, s3pth string) {
-	svc := NewS3()
+	svc := cloud_aws.NewS3()
 	input := &s3.HeadObjectInput{
 		Bucket: aws.String(os.Getenv("BUCKET_NAME")),
 		Key:    aws.String(s3pth),

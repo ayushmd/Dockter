@@ -28,6 +28,13 @@ rpc_code:
 	--go-grpc_out=. \
 	--go-grpc_opt=paths=source_relative \
 	.\rpc\builderrpc\builder.proto
+	
+	protoc \
+	--go_out=. \
+	--go_opt=paths=source_relative \
+	--go-grpc_out=. \
+	--go-grpc_opt=paths=source_relative \
+	.\rpc\carpc\ca.proto
 
 
 protoc_install:

@@ -3,6 +3,7 @@ package builder
 import (
 	"context"
 	"fmt"
+	"io"
 	"log"
 	"net/url"
 	"os"
@@ -10,8 +11,11 @@ import (
 	"strings"
 	"time"
 
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/ayush18023/Load_balancer_Fyp/internal"
 	"github.com/ayush18023/Load_balancer_Fyp/internal/auth"
+	cloud_aws "github.com/ayush18023/Load_balancer_Fyp/internal/aws"
 	"github.com/ayush18023/Load_balancer_Fyp/rpc/masterrpc"
 	"github.com/go-git/go-git/v5"
 	"google.golang.org/grpc"
@@ -72,8 +76,11 @@ func (b *Builder) GetStartCommand(StartCmd string) string {
 	return fmt.Sprintf("CMD %s", cmdStr)
 }
 
-func (b *Builder) BuildDockerLayers(Name, BuildCmd, StartCmd, RuntimeEnv string, EnvVars map[string]string) string {
+func (b *Builder) BuildDockerLayers(Name, BuildCmd, StartCmd, RuntimeEnv, KeyGroup string, EnvVars map[string]string) string {
 	var DockerFileContent string
+	// if KeyGroup != "" {
+	// 	DockerFileContent += b.GetBaseEnvironment(RuntimeEnv) + "\n"
+	// }
 	DockerFileContent += b.GetBaseEnvironment(RuntimeEnv) + "\n"
 	DockerFileContent += b.GetWorkdir() + "\n"
 	DockerFileContent += b.GetEnvVariables(EnvVars) + "\n"
@@ -121,10 +128,35 @@ RUN go mod download && go mod verify
 	return ""
 }
 
+func (b *Builder) BuildSSH(KeyGroup string) string { //keygroup is name of key
+	svc := cloud_aws.NewS3()
+	var err error
+	resp, err := svc.GetObject(&s3.GetObjectInput{
+		Bucket: aws.String(os.Getenv("BUCKET_NAME")),
+		Key:    aws.String(KeyGroup),
+	})
+	defer resp.Body.Close()
+	bt, err := io.ReadAll(resp.Body)
+	err = os.WriteFile(KeyGroup, bt, 0644)
+	if err != nil {
+		return ""
+	}
+	return fmt.Sprintf(`
+FROM ubuntu:latest
+RUN apt update && apt install  openssh-server sudo -y
+RUN mkdir -p /root/.ssh
+COPY %s /root/.ssh/authorized_keys
+RUN chmod 600 /root/.ssh/authorized_keys
+RUN service ssh start
+EXPOSE 22
+RUN "/usr/sbin/sshd -D"
+`, KeyGroup)
+}
+
 const localCloneRepo string = "repos"
 
 func (b *Builder) BuildRaw(
-	Name, GitLink, Branch, BuildCmd, StartCmd, RuntimeEnv string, runningPort string,
+	Name, GitLink, Branch, BuildCmd, StartCmd, RuntimeEnv, runningPort, KeyGroup string,
 	EnvVars map[string]string,
 ) (string, *internal.ContainerBasedMetric, error) {
 	start := time.Now()
@@ -145,8 +177,12 @@ func (b *Builder) BuildRaw(
 		fmt.Printf("Failed to clone repository: %v\n", err)
 		return "", nil, err
 	}
-
-	dockerfileContent := []byte(b.BuildDockerByLang(Name, BuildCmd, StartCmd, RuntimeEnv, EnvVars))
+	var dockfile string
+	if KeyGroup != "" {
+		dockfile += b.BuildSSH(KeyGroup)
+	}
+	dockfile += b.BuildDockerByLang(Name, BuildCmd, StartCmd, RuntimeEnv, EnvVars)
+	dockerfileContent := []byte(dockfile)
 	err = os.WriteFile(
 		relDockerFile,
 		dockerfileContent,

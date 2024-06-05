@@ -76,6 +76,7 @@ func (w *WorkerServer) AddTask(ctx context.Context, in *workerrpc.Task) (*worker
 		in.GetName(),
 		in.GetImageName(),
 		in.GetRunningPort(),
+		in.GetHasSSH(),
 	)
 	if err != nil {
 		return &workerrpc.AddTaskResponse{}, err

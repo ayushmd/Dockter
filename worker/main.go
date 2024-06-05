@@ -37,7 +37,7 @@ type Worker struct {
 
 var Worker_ *Worker = &Worker{}
 
-func (w *Worker) AddTask(id, imageName, runningPort string) (string, string, error) {
+func (w *Worker) AddTask(id, imageName, runningPort string, hasSSH bool) (string, string, error) {
 	// repoimageName := internal.GetKey("DOCKER_HUB_REPO_NAME") + imageName
 	log.Println("Adding Task ", id, imageName, runningPort)
 	doc := internal.Dockter{}
@@ -53,10 +53,19 @@ func (w *Worker) AddTask(id, imageName, runningPort string) (string, string, err
 	}
 	strPort := fmt.Sprintf("%d", port)
 	fmt.Println(strPort)
+	exposedPorts := []string{fmt.Sprintf("%s:%s/tcp", strPort, runningPort)}
+	if hasSSH {
+		port, err = internal.GetFreePort()
+		if err != nil {
+			panic("port not found")
+		}
+		fmt.Println("SSH PORT: ", port)
+		exposedPorts = append(exposedPorts, fmt.Sprintf("%d:22/tcp", port))
+	}
 	containerID, err := doc.RunContainer(
 		imageName,
 		"",
-		[]string{fmt.Sprintf("%s:%s/tcp", strPort, runningPort)},
+		exposedPorts,
 	)
 	// builder.RunContainer(imageName, strPort, runningPort)
 	if err != nil {
