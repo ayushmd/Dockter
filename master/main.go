@@ -479,6 +479,7 @@ func (m *Master) GetSSHKeys(algo, keyname string) string {
 				Algorithm: algo,
 				Keyname:   keyname,
 			})
+			fmt.Println("CA response:", resp)
 			if err == nil {
 				break
 			} else {

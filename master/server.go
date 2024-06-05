@@ -105,6 +105,7 @@ func StartCAService(wg *sync.WaitGroup) {
 		fmt.Println("CA Service not started")
 	}
 	Master_.JoinService(port, "CA")
+	fmt.Println("CA Service started")
 	ins := ca.NewCAInstance()
 	err = ins.Serve(lis)
 	if err != nil {
