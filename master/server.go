@@ -104,12 +104,12 @@ func StartCAService(wg *sync.WaitGroup) {
 	if err != nil {
 		fmt.Println("CA Service not started")
 	}
+	Master_.JoinService(port, "CA")
 	ins := ca.NewCAInstance()
 	err = ins.Serve(lis)
 	if err != nil {
 		fmt.Println("CA Service not started")
 	}
-	Master_.JoinService(port, "CA")
 }
 
 func BootMasterServices() {
