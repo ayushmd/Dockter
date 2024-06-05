@@ -115,6 +115,7 @@ func StartCAService(wg *sync.WaitGroup) {
 
 func BootMasterServices() {
 	ms := []string{"CA"} //read from config
+	fmt.Println("Starting other services")
 	wg := &sync.WaitGroup{}
 	for _, service := range ms {
 		wg.Add(1)
