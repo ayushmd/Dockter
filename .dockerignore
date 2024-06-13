@@ -1,0 +1,14 @@
+# Ignore Internal configs
+supervisord.conf
+
+# Ignore Keys
+*.pem
+*.pub
+
+# Ignore Dockerfile and .dockerignore itself (optional)
+Dockerfile
+.dockerignore
+
+# Ignore git files
+.git
+.gitignore

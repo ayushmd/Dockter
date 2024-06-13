@@ -29,6 +29,8 @@ type Builder struct {
 
 var Builder_ *Builder = &Builder{}
 
+const tempFolder string = "tempKeyConf"
+
 func (b *Builder) GetBaseEnvironment(RuntimeEnv string) string {
 	switch strings.ToLower(RuntimeEnv) {
 	case "python":
@@ -203,7 +205,8 @@ func (b *Builder) FetchSSHKeys(KeyGroup string) error { //keygroup is name of ke
 	if err != nil {
 		return err
 	}
-	keyPth := fmt.Sprintf("../tempKeyConf/%s", keyName)
+	// keyPth := fmt.Sprintf("../tempKeyConf/%s", keyName)
+	keyPth := filepath.Join(tempFolder, keyName)
 	return os.WriteFile(keyPth, bt, 0644)
 }
 
@@ -230,7 +233,8 @@ priority = 10
 autorestart = true
 startretries = 3	
 `, command)
-	keyPth := fmt.Sprintf("../tempKeyConf/%s.conf", KeyGroup)
+	// keyPth := fmt.Sprintf("../tempKeyConf/%s.conf", KeyGroup)
+	keyPth := filepath.Join(tempFolder, KeyGroup+".conf")
 	return os.WriteFile(keyPth, []byte(conf), 0600)
 }
 
@@ -273,10 +277,11 @@ func (b *Builder) BuildRaw(
 		if err != nil {
 			return "", nil, err
 		}
-		keyPth := fmt.Sprintf("../tempKeyConf/%s.pub.pem", KeyGroup)
-		conf := fmt.Sprintf("../tempKeyConf/%s.conf", KeyGroup)
+		keyName := fmt.Sprintf("%s.pem.pub", KeyGroup)
+		keyPth := filepath.Join(tempFolder, keyName)
+		conf := filepath.Join(tempFolder, KeyGroup+".conf")
 		b.BuildDockerBySSH(Name, BuildCmd, StartCmd, RuntimeEnv, EnvVars, keyPth, conf)
-		defer b.RemoveSSHEnv(keyPth, conf)
+		// defer b.RemoveSSHEnv(keyPth, conf)
 	} else {
 		dockfile = b.BuildDockerByLang(Name, BuildCmd, StartCmd, RuntimeEnv, EnvVars)
 	}
