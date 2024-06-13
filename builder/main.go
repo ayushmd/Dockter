@@ -278,9 +278,9 @@ func (b *Builder) BuildRaw(
 			return "", nil, err
 		}
 		keyName := fmt.Sprintf("%s.pem.pub", KeyGroup)
-		keyPth := filepath.Join(tempFolder, keyName)
-		conf := filepath.Join(tempFolder, KeyGroup+".conf")
-		dockfile = b.BuildDockerBySSH(Name, BuildCmd, StartCmd, RuntimeEnv, EnvVars, keyPth, conf)
+		// keyPth := filepath.Join(tempFolder, keyName)
+		// conf := filepath.Join(tempFolder, KeyGroup+".conf")
+		dockfile = b.BuildDockerBySSH(Name, BuildCmd, StartCmd, RuntimeEnv, EnvVars, keyName, KeyGroup+".conf")
 		// defer b.RemoveSSHEnv(keyPth, conf)
 	} else {
 		dockfile = b.BuildDockerByLang(Name, BuildCmd, StartCmd, RuntimeEnv, EnvVars)
