@@ -190,7 +190,7 @@ RUN go mod download && go mod verify
 func (b *Builder) FetchSSHKeys(KeyGroup string) error { //keygroup is name of key
 	svc := cloud_aws.NewS3()
 	var err error
-	keyName := fmt.Sprintf("%s.pub.pem", KeyGroup)
+	keyName := fmt.Sprintf("%s.pem.pub", KeyGroup)
 	resp, err := svc.GetObject(&s3.GetObjectInput{
 		Bucket: aws.String(os.Getenv("BUCKET_NAME")),
 		Key:    aws.String(keyName),
