@@ -128,29 +128,115 @@ RUN go mod download && go mod verify
 	return ""
 }
 
-func (b *Builder) BuildSSH(KeyGroup string) string { //keygroup is name of key
+func (b *Builder) BuildDockerBySSH(Name, BuildCmd, StartCmd, RuntimeEnv string, EnvVars map[string]string, pubKey string, supervisorConf string) string {
+	// pubKey := fmt.Sprintf("../tempKeys/%s.pub.pem",KeyGroup)
+	switch strings.ToLower(RuntimeEnv) {
+	case "python":
+		dockerImage := fmt.Sprintf(`
+FROM python:3.9
+%s
+%s
+%s
+%s
+%s
+`, b.GetWorkdir(), b.GetEnvVariables(EnvVars), b.Copyfiles(Name), b.GetRunCommand(BuildCmd), b.GetStartCommand(StartCmd))
+		return dockerImage
+	case "node":
+		dockerImage := fmt.Sprintf(`
+FROM ubuntu:latest
+
+RUN apt-get update -y && \
+    apt-get upgrade -y && \
+    apt-get install -y vim net-tools nodejs npm openssh-server supervisor sudo && \
+    groupadd sshgroup && useradd -ms /bin/bash -g sshgroup user && \
+    mkdir -p /home/user/.ssh
+
+
+ADD ../tempKeyConf/%s /home/user/.ssh/authorized_keys
+ADD ../tempKeyConf/%s /etc/supervisord.conf
+
+RUN chown user:sshgroup /home/user/.ssh/authorized_keys && \
+    chmod 600 /home/user/.ssh/authorized_keys && \
+    service ssh start && \
+    mkdir -p /var/log/supervisor
+
+
+WORKDIR /home/user
+COPY . .
+%s 
+RUN %s
+
+CMD ["/usr/bin/supervisord", "--configuration=/etc/supervisord.conf"]
+
+EXPOSE 22
+`, pubKey, supervisorConf, b.GetEnvVariables(EnvVars), b.GetRunCommand(BuildCmd))
+		return dockerImage
+	case "go":
+		dockerImage := fmt.Sprintf(`
+FROM golang:1.22
+%s
+COPY go.mod go.sum ./
+RUN go mod download && go mod verify
+%s
+%s
+%s
+%s
+`, b.GetWorkdir(), b.GetEnvVariables(EnvVars), b.Copyfiles(Name), b.GetRunCommand(BuildCmd), b.GetStartCommand(StartCmd))
+		return dockerImage
+	}
+	return ""
+}
+
+func (b *Builder) FetchSSHKeys(KeyGroup string) error { //keygroup is name of key
 	svc := cloud_aws.NewS3()
 	var err error
+	keyName := fmt.Sprintf("%s.pub.pem", KeyGroup)
 	resp, err := svc.GetObject(&s3.GetObjectInput{
 		Bucket: aws.String(os.Getenv("BUCKET_NAME")),
-		Key:    aws.String(KeyGroup),
+		Key:    aws.String(keyName),
 	})
+	if err != nil {
+		return err
+	}
 	defer resp.Body.Close()
 	bt, err := io.ReadAll(resp.Body)
-	err = os.WriteFile(KeyGroup, bt, 0644)
 	if err != nil {
-		return ""
+		return err
 	}
-	return fmt.Sprintf(`
-FROM ubuntu:latest
-RUN apt update && apt install  openssh-server sudo -y
-RUN mkdir -p /root/.ssh
-COPY %s /root/.ssh/authorized_keys
-RUN chmod 600 /root/.ssh/authorized_keys
-RUN service ssh start
-EXPOSE 22
-RUN "/usr/sbin/sshd -D"
-`, KeyGroup)
+	keyPth := fmt.Sprintf("../tempKeyConf/%s", keyName)
+	return os.WriteFile(keyPth, bt, 0644)
+}
+
+func (b *Builder) CreateSupervisorConfig(command string, KeyGroup string) error {
+	conf := fmt.Sprintf(`
+[supervisord]
+logfile=/var/log/supervisor/supervisord.log  ; (main log file;default $CWD/supervisord.log)
+logfile_maxbytes=50MB       ; (max main logfile bytes b4 rotation;default 50MB)
+logfile_backups=10          ; (num of main logfile rotation backups;default 10)
+loglevel=info               ; (log level;default info; others: debug,warn,trace)
+nodaemon=true               ; (start in foreground if true;default false)
+pidfile=/var/run/supervisord.pid
+
+[program:mainapp]
+command=%s
+priority=999
+autostart=true                ; start at supervisord start (default: true)
+autorestart=true
+startretries=3
+
+[program:sshd]
+command = /usr/sbin/sshd -D 
+priority = 10
+autorestart = true
+startretries = 3	
+`, command)
+	keyPth := fmt.Sprintf("../tempKeyConf/%s.conf", KeyGroup)
+	return os.WriteFile(keyPth, []byte(conf), 0600)
+}
+
+func (b *Builder) RemoveSSHEnv(keypth, confpth string) {
+	os.Remove(keypth)
+	os.Remove(confpth)
 }
 
 const localCloneRepo string = "repos"
@@ -179,9 +265,21 @@ func (b *Builder) BuildRaw(
 	}
 	var dockfile string
 	if KeyGroup != "" {
-		dockfile += b.BuildSSH(KeyGroup)
+		err := b.FetchSSHKeys(KeyGroup)
+		if err != nil {
+			return "", nil, err
+		}
+		err = b.CreateSupervisorConfig(StartCmd, KeyGroup)
+		if err != nil {
+			return "", nil, err
+		}
+		keyPth := fmt.Sprintf("../tempKeyConf/%s.pub.pem", KeyGroup)
+		conf := fmt.Sprintf("../tempKeyConf/%s.conf", KeyGroup)
+		b.BuildDockerBySSH(Name, BuildCmd, StartCmd, RuntimeEnv, EnvVars, keyPth, conf)
+		defer b.RemoveSSHEnv(keyPth, conf)
+	} else {
+		dockfile = b.BuildDockerByLang(Name, BuildCmd, StartCmd, RuntimeEnv, EnvVars)
 	}
-	dockfile += b.BuildDockerByLang(Name, BuildCmd, StartCmd, RuntimeEnv, EnvVars)
 	dockerfileContent := []byte(dockfile)
 	err = os.WriteFile(
 		relDockerFile,

@@ -1,6 +1,7 @@
 package builder
 
 import (
+	"os"
 	"os/exec"
 )
 
@@ -26,4 +27,12 @@ func Cmd(name string, args ...string) *exec.Cmd {
 		return cmd
 	}
 	return nil
+}
+
+func WriteToFile(data string, filpth string) error {
+	return os.WriteFile(
+		filpth,
+		[]byte(data),
+		0644,
+	)
 }
