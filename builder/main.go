@@ -189,7 +189,7 @@ RUN go mod download && go mod verify
 	return ""
 }
 
-func (b *Builder) FetchSSHKeys(KeyGroup string) error { //keygroup is name of key
+func (b *Builder) FetchSSHKeys(KeyGroup, keypath string) error { //keygroup is name of key
 	svc := cloud_aws.NewS3()
 	var err error
 	keyName := fmt.Sprintf("%s.pem.pub", KeyGroup)
@@ -207,10 +207,10 @@ func (b *Builder) FetchSSHKeys(KeyGroup string) error { //keygroup is name of ke
 	}
 	// keyPth := fmt.Sprintf("../tempKeyConf/%s", keyName)
 	// keyPth := filepath.Join(tempFolder, keyName)
-	return os.WriteFile(keyName, bt, 0644)
+	return os.WriteFile(keypath, bt, 0644)
 }
 
-func (b *Builder) CreateSupervisorConfig(command string, KeyGroup string) error {
+func (b *Builder) CreateSupervisorConfig(command string, confpath string) error {
 	conf := fmt.Sprintf(`
 [supervisord]
 logfile=/var/log/supervisor/supervisord.log  ; (main log file;default $CWD/supervisord.log)
@@ -235,7 +235,7 @@ startretries = 3
 `, command)
 	// keyPth := fmt.Sprintf("../tempKeyConf/%s.conf", KeyGroup)
 	// keyPth := filepath.Join(tempFolder, KeyGroup+".conf")
-	return os.WriteFile(KeyGroup+".conf", []byte(conf), 0600)
+	return os.WriteFile(confpath, []byte(conf), 0600)
 }
 
 func (b *Builder) RemoveSSHEnv(keypth, confpth string) {
@@ -269,11 +269,11 @@ func (b *Builder) BuildRaw(
 	}
 	var dockfile string
 	if KeyGroup != "" {
-		err := b.FetchSSHKeys(KeyGroup)
+		err := b.FetchSSHKeys(KeyGroup, filepath.Join(filpth, KeyGroup+".conf"))
 		if err != nil {
 			return "", nil, err
 		}
-		err = b.CreateSupervisorConfig(StartCmd, KeyGroup)
+		err = b.CreateSupervisorConfig(StartCmd, filepath.Join(filpth, KeyGroup+".pem.pub"))
 		if err != nil {
 			return "", nil, err
 		}
