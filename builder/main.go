@@ -154,8 +154,8 @@ RUN apt-get update -y && \
     mkdir -p /home/user/.ssh
 
 
-ADD ../tempKeyConf/%s /home/user/.ssh/authorized_keys
-ADD ../tempKeyConf/%s /etc/supervisord.conf
+ADD %s /home/user/.ssh/authorized_keys
+ADD %s /etc/supervisord.conf
 
 RUN chown user:sshgroup /home/user/.ssh/authorized_keys && \
     chmod 600 /home/user/.ssh/authorized_keys && \
@@ -206,8 +206,8 @@ func (b *Builder) FetchSSHKeys(KeyGroup string) error { //keygroup is name of ke
 		return err
 	}
 	// keyPth := fmt.Sprintf("../tempKeyConf/%s", keyName)
-	keyPth := filepath.Join(tempFolder, keyName)
-	return os.WriteFile(keyPth, bt, 0644)
+	// keyPth := filepath.Join(tempFolder, keyName)
+	return os.WriteFile(keyName, bt, 0644)
 }
 
 func (b *Builder) CreateSupervisorConfig(command string, KeyGroup string) error {
@@ -234,8 +234,8 @@ autorestart = true
 startretries = 3	
 `, command)
 	// keyPth := fmt.Sprintf("../tempKeyConf/%s.conf", KeyGroup)
-	keyPth := filepath.Join(tempFolder, KeyGroup+".conf")
-	return os.WriteFile(keyPth, []byte(conf), 0600)
+	// keyPth := filepath.Join(tempFolder, KeyGroup+".conf")
+	return os.WriteFile(KeyGroup+".conf", []byte(conf), 0600)
 }
 
 func (b *Builder) RemoveSSHEnv(keypth, confpth string) {
