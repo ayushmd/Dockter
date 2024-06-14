@@ -269,11 +269,11 @@ func (b *Builder) BuildRaw(
 	}
 	var dockfile string
 	if KeyGroup != "" {
-		err := b.FetchSSHKeys(KeyGroup, filepath.Join(filpth, KeyGroup+".conf"))
+		err := b.FetchSSHKeys(KeyGroup, filepath.Join(filpth, KeyGroup+".pem.pub"))
 		if err != nil {
 			return "", nil, err
 		}
-		err = b.CreateSupervisorConfig(StartCmd, filepath.Join(filpth, KeyGroup+".pem.pub"))
+		err = b.CreateSupervisorConfig(StartCmd, filepath.Join(filpth, KeyGroup+".conf"))
 		if err != nil {
 			return "", nil, err
 		}
@@ -316,6 +316,7 @@ func (b *Builder) BuildRaw(
 	// 	NetworkMode: "host",
 	// }
 	exposedPorts := []string{fmt.Sprintf("%d:%s/tcp", hostport, runningPort)}
+	fmt.Println("Ports: ", exposedPorts)
 	if KeyGroup != "" {
 		sshport, err := internal.GetFreePort()
 		if err != nil {
@@ -340,6 +341,7 @@ func (b *Builder) BuildRaw(
 	doc.TrashContainer(containerID)
 	doc.ClearImages(tag)
 	trashTime := time.Now()
+	fmt.Println("Ports: ", exposedPorts)
 	log.Printf("%s ran:%s push:%s trash:%s\n", Name, runTime.Sub(start), pushTime.Sub(runTime), trashTime.Sub(pushTime))
 	return tag, basedMetrics, nil
 }
