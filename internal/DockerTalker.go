@@ -240,10 +240,14 @@ func GetBasedMetrics(containerID string) (*ContainerBasedMetric, error) {
 	cpuDelta := metrics.Cpu_stats.Cpu_usage.Total_usage - metrics.Precpu_stats.Cpu_usage.Total_usage
 	systemCpuDelta := metrics.Cpu_stats.System_cpu_usage - metrics.Precpu_stats.System_cpu_usage
 	numberCpus := metrics.Cpu_stats.Online_cpus
+	var diskuse int64
+	if len(containers) > 0 {
+		diskuse = containers[0].SizeRootFs
+	}
 	basedMetric := &ContainerBasedMetric{
 		MemUsage:   metrics.Memory_stats.Usage,
 		CpuPercent: (cpuDelta / systemCpuDelta) * int64(numberCpus) * 100,
-		DiskUsage:  containers[0].SizeRootFs,
+		DiskUsage:  diskuse,
 	}
 	return basedMetric, nil
 }
