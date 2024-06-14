@@ -315,7 +315,15 @@ func (b *Builder) BuildRaw(
 	// 	},
 	// 	NetworkMode: "host",
 	// }
-	containerID, err := doc.RunContainer(Name, Name, []string{fmt.Sprintf("%d:%s/tcp", hostport, runningPort)})
+	exposedPorts := []string{fmt.Sprintf("%d:%s/tcp", hostport, runningPort)}
+	if KeyGroup != "" {
+		sshport, err := internal.GetFreePort()
+		if err != nil {
+			return "", nil, err
+		}
+		exposedPorts = append(exposedPorts, fmt.Sprintf("%d:%d/tcp", sshport, 22))
+	}
+	containerID, err := doc.RunContainer(Name, Name, exposedPorts)
 	if err != nil {
 		log.Fatal(err)
 	}
