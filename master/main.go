@@ -86,7 +86,7 @@ type TaskImageRequest struct {
 	Name        string `json:"name"`
 	DockerImage string `json:"dockerImage"`
 	RunningPort string `json:"runningPort"`
-	hasSSH      bool   `json:"hasSSH"`
+	HasSSH      bool   `json:"hasSSH"`
 	BasedMetric internal.ContainerBasedMetric
 } // DEPLOY
 
@@ -548,7 +548,7 @@ func (m *Master) BuildRaw(message kafka.Message) {
 	if err != nil {
 		panic(err)
 	}
-	req := TaskImageRequest{
+	req := &TaskImageRequest{
 		Name:        buildRawResponse.GetName(),
 		DockerImage: buildRawResponse.GetImageName(),
 		RunningPort: buildRawResponse.GetRunningPort(),
@@ -559,7 +559,7 @@ func (m *Master) BuildRaw(message kafka.Message) {
 		},
 	}
 	if configs.KeyGroup != "" {
-		req.hasSSH = true
+		req.HasSSH = true
 	}
 	sendDeploy, err := json.Marshal(req)
 	if err != nil {
@@ -642,7 +642,7 @@ func (m *Master) Deploy(message kafka.Message) {
 			Name:        configs.Name,
 			ImageName:   configs.DockerImage,
 			RunningPort: configs.RunningPort,
-			HasSSH:      configs.hasSSH,
+			HasSSH:      configs.HasSSH,
 		},
 	)
 	backend.ResConn()
