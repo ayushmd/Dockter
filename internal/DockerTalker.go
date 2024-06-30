@@ -79,7 +79,7 @@ func (d *Dockter) BuildNewImage(imageName string, imagePath string) {
 		Tags:        []string{imageName + ":latest"},
 		Remove:      true,
 		ForceRemove: true,
-		NoCache:     true,
+		NoCache:     false,
 		Dockerfile:  "Dockerfile",
 		Context:     dockerBuildContext,
 	}

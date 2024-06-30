@@ -238,7 +238,7 @@ func (m *Master) GetRecord(name string) (*Task, error) {
 	ctask, ok := m.cacheDns.Get(name)
 	if ok {
 		task = &ctask
-	} else if m.cacheDns != nil {
+	} else if m.dbDns != nil {
 		row := Master_.GetDnsRecord(name)
 		var Subdomain sql.NullString
 		var HostIp sql.NullString
@@ -294,6 +294,7 @@ func (m *Master) Recovery(serv *Backend) {
 		var Status sql.NullString
 		err = rows.Scan(&Subdomain, &HostIp, &HostPort, &RunningPort, &ImageName, &ContainerID, &Status, &Type)
 		// task := Task
+		log.Println("Redeploying: ", ImageName)
 		sendDeploy, err := json.Marshal(TaskImageRequest{
 			Name:        Subdomain.String,
 			DockerImage: ImageName.String,
@@ -410,6 +411,7 @@ func (m *Master) HasJoined(peerurl string) int {
 }
 
 func Handshake(peerurl string) {
+	//waits for dns to start on master node
 	for retries := 0; retries < 3; retries++ {
 		if Master_.dnsStatus != STARTED {
 			err := HandshakePolicy(CLEAR_INACTIVE, peerurl)
@@ -444,26 +446,22 @@ func (m *Master) Join(peerurl, peerState string, HealthStats internal.ContainerB
 }
 
 func (m *Master) JoinService(peerurl, peerstate string) {
-	hasJoined := false
 	for _, serv := range m.ServicePool {
 		if serv.URL.Host == peerurl {
 			if serv.State != peerstate {
 				serv.State = peerstate
 			}
-			hasJoined = true
 			serv.IsAlive = true
-			break
+			return
 		}
 	}
-	if !hasJoined {
-		m.ServicePool = append(m.ServicePool, &Service{
-			URL: url.URL{
-				Host: peerurl,
-			},
-			State:   peerstate,
-			IsAlive: true,
-		})
-	}
+	m.ServicePool = append(m.ServicePool, &Service{
+		URL: url.URL{
+			Host: peerurl,
+		},
+		State:   peerstate,
+		IsAlive: true,
+	})
 }
 
 func (m *Master) GetSSHKeys(algo, keyname string) string {

@@ -18,6 +18,7 @@ RUN chown user:sshgroup /home/user/.ssh/authorized_keys && \
 
 WORKDIR /home/user
 COPY . .
+
 RUN npm i
 
 CMD ["/usr/bin/supervisord", "--configuration=/etc/supervisord.conf"]
