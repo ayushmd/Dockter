@@ -13,7 +13,7 @@ https://github.com/user-attachments/assets/532b9948-ac84-4ba9-bd7c-2d6af0a2db5c
 
 1. Deploy containers
 2. Auto heal Dead Containers
-3. Multi-node setup, which are independent
+3. Multi-node setup, which is independent
    of cloud environment.
 4. Health checkups for Nodes in cluster.
 5. Custom load balancer based on health and stats of container.
