@@ -5,7 +5,9 @@ A tool to deploy docker containers for frontend and backend servers in distribut
 <br/> **Worker:** Nodes where the containers are deployed
 <br/> **Builder:** Converts code to image and stores to registery
 
-[![Watch the video](https://raw.githubusercontent.com/ayushmd/Dockter/blob/main/assets/demo.mp4)]
+
+https://github.com/user-attachments/assets/532b9948-ac84-4ba9-bd7c-2d6af0a2db5c
+
 
 ### Features
 
