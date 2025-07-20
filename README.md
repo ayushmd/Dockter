@@ -4,8 +4,8 @@ A tool to deploy docker containers for frontend and backend servers in distribut
 
 **Aim:** To provide a way to deploy applications on own infrastructure similar to Coolify, Dokku, Dokploy but in distributed and multi-node scenario. Along with it also providing features such as load balancing, building applications i.e. CI/CD, Scaling applications, health checks similar to AWS Beanstalk
 
-The types of node in Dockter are:
 
+The types of node in Dockter are:
 <br/> **Master:** Node Responsible for all the orchestration and communication.
 <br/> **Worker:** Nodes where the containers are deployed
 <br/> **Builder:** Converts code to image and stores to registery
