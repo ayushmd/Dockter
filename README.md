@@ -1,8 +1,10 @@
 # Dockter
 
-A tool to deploy docker containers for frontend and backend servers in distributed cloud environments. The types of node in Dockter are:
+A tool to deploy docker containers for frontend and backend servers in distributed cloud environments. 
 
-**Aim:** To provide a way to deploy applications on own infrastructure similar to Coolify, Dokku, Dokploy but in distributed and multi-node scenario. Along with it also providing support for load balancing, building applications i.e. CI/CD, Scaling applications, health checks similar to AWS Beanstalk
+**Aim:** To provide a way to deploy applications on own infrastructure similar to Coolify, Dokku, Dokploy but in distributed and multi-node scenario. Along with it also providing features such as load balancing, building applications i.e. CI/CD, Scaling applications, health checks similar to AWS Beanstalk
+
+The types of node in Dockter are:
 
 <br/> **Master:** Node Responsible for all the orchestration and communication.
 <br/> **Worker:** Nodes where the containers are deployed
